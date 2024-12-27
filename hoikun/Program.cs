@@ -1,12 +1,9 @@
 using hoikun.Data;
-using hoikun;
-using Microsoft.AspNetCore.Components;
-using Microsoft.AspNetCore.Components.Web;
-using Microsoft.EntityFrameworkCore;
 using hoikun.Services;
+using Microsoft.EntityFrameworkCore;
 
 
-var builder = WebApplication.CreateBuilder(args);
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 // SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -19,13 +16,14 @@ builder.Services.AddScoped<AppointmentService>();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddDevExpressBlazor();
-builder.Services.Configure<DevExpress.Blazor.Configuration.GlobalOptions>(options => {
+builder.Services.Configure<DevExpress.Blazor.Configuration.GlobalOptions>(options =>
+{
     options.BootstrapVersion = DevExpress.Blazor.BootstrapVersion.v5;
 });
 builder.WebHost.UseWebRoot("wwwroot");
 builder.WebHost.UseStaticWebAssets();
 
-var app = builder.Build();
+WebApplication app = builder.Build();
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())

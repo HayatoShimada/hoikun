@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace hoikun.Data
 {
@@ -29,6 +28,6 @@ namespace hoikun.Data
         public string Role { get; set; }
     }
 
-    
+
 
 }

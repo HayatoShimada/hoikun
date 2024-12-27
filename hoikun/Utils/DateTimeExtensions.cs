@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace hoikun.Utils
+﻿namespace hoikun.Utils
 {
     public static class DateTimeExtensions
     {
@@ -12,7 +7,8 @@ namespace hoikun.Utils
             int diff = (7 + (dt.DayOfWeek - startOfWeek)) % 7;
             return dt.AddDays(-1 * diff).Date;
         }
-        public static DateTime StartOfMonth(this DateTime dt) {
+        public static DateTime StartOfMonth(this DateTime dt)
+        {
             return new DateTime(dt.Year, dt.Month, 1);
         }
     }
