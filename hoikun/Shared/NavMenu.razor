@@ -1,11 +1,48 @@
-﻿<div class="sidebar @StateCssClass">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using hoikun.Services
+@using System.Security.Claims
+
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserStateService UserStateService
+
+<div class="sidebar @StateCssClass">
 <DxTreeView AllowSelectNodes="true" CssClass="app-sidebar">
     <Nodes>
         <DxTreeViewNode NavigateUrl="./" Text="Overview"></DxTreeViewNode>
+    </Nodes>
+
+    <Nodes>
+        <DxTreeViewNode Text="プロフィール">
+            <Nodes>
+                <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignIn" Text="ログイン"></DxTreeViewNode>
+                <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignOut" Text="ログアウト"></DxTreeViewNode>
+            </Nodes>
+        </DxTreeViewNode>
     </Nodes>
 </DxTreeView>
 </div>
 
 @code {
     [Parameter] public string? StateCssClass { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            UserStateService.Email = user.Claims.FirstOrDefault(c => c.Type == "emails")?.Value ?? string.Empty;
+            var givenName = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
+            var surname = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
+            UserStateService.Username = $"{surname}{givenName}".Trim();
+        }
+        else
+        {
+            UserStateService.Email = string.Empty;
+            UserStateService.Username = string.Empty;
+            StateHasChanged();
+
+        }
+    }
 }

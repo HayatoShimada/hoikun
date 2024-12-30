@@ -1,9 +1,29 @@
 using hoikun.Data;
 using hoikun.Services;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Identity.Web;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+
+// Azure AD B2C 認証とトークンキャッシュ設定
+builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAdB2C"))
+    .EnableTokenAcquisitionToCallDownstreamApi()
+    .AddInMemoryTokenCaches();
+builder.Services.AddScoped<UserStateService>();
+
+// グローバル認証ポリシーの設定
+builder.Services.AddControllersWithViews(options =>
+{
+    AuthorizationPolicy policy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.Filters.Add(new AuthorizeFilter(policy));
+});
 
 // SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

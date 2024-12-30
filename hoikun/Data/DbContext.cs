@@ -28,6 +28,4 @@ namespace hoikun.Data
         public string Role { get; set; }
     }
 
-
-
 }

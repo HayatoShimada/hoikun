@@ -14,9 +14,13 @@ namespace hoikun.Services
 
         public async Task<List<Appointment>> GetAppointmentsAsync(DateTime startDate, DateTime endDate)
         {
-            return await _context.Appointments
+            List<Appointment> appointments = await _context.Appointments
                 .Where(a => a.StartDate >= startDate && a.EndDate <= endDate)
                 .ToListAsync();
+
+            List<Appointment> tests = await _context.Appointments.ToListAsync();
+
+            return appointments;
         }
 
 
@@ -24,6 +28,21 @@ namespace hoikun.Services
         {
             _context.Appointments.Add(appointment);
             await _context.SaveChangesAsync();
+        }
+
+        public async Task UpdateAppointmentAsync(Appointment appointment)
+        {
+            Appointment? existingAppointment = await _context.Appointments.FirstOrDefaultAsync(a => a.AppointmentId == appointment.AppointmentId);
+            if (existingAppointment != null)
+            {
+                existingAppointment.StartDate = appointment.StartDate;
+                existingAppointment.EndDate = appointment.EndDate;
+                existingAppointment.Caption = appointment.Caption;
+                existingAppointment.Label = appointment.Label;
+                existingAppointment.Status = appointment.Status;
+                existingAppointment.AppointmentType = appointment.AppointmentType;
+                await _context.SaveChangesAsync();
+            }
         }
     }
 

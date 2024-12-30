@@ -10,5 +10,7 @@
         public int Label { get; set; }
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+        public int AppointmentType { get; set; }
+        public bool AllDay { get; set; } = false;
     }
 }
