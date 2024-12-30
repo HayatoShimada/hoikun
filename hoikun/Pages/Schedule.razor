@@ -1,0 +1,159 @@
+﻿@page "/schedule"
+@using hoikun.Data
+@using hoikun.Enums
+@using hoikun.Services
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject ApplicationDbContext dbContext
+@inject AppointmentService AppointmentService
+
+<span>Appointments count: @apptCount</span>
+<DxScheduler StartDate="currentDate"
+             StartDateChanged="OnStartDateChanged"
+             ActiveViewType="activeType"
+             ActiveViewTypeChanged="OnActiveViewChanged"
+             DataStorage="@DataStorage"
+             CssClass="w-100"
+             AppointmentUpdated="@AppointmentUpdated"
+             AppointmentInserted="@AppointmentInserted"
+             AppointmentRemoved="@AppointmentRemoved">
+    <Views>
+        <DxSchedulerDayView DayCount="1" ShowWorkTimeOnly="false"></DxSchedulerDayView>
+        <DxSchedulerWeekView></DxSchedulerWeekView>
+        <DxSchedulerMonthView CellMinWidth="120"></DxSchedulerMonthView>
+    </Views>
+
+    <AppointmentCompactFormLayout>
+        <DxSchedulerSubjectFormLayoutItem Caption="件名" />
+        <DxSchedulerAllDayFormLayoutItem Caption="終日" />
+        <DxSchedulerStartDateFormLayoutItem Caption="開始日" />
+        <DxSchedulerStartTimeFormLayoutItem Caption="開始時間" />
+        <DxSchedulerEndDateFormLayoutItem Caption="終了日" />
+        <DxSchedulerEndTimeFormLayoutItem Caption="終了時間" />
+        <DxSchedulerStatusFormLayoutItem Caption="状態" ShowIcon="true" />
+        <DxSchedulerLabelFormLayoutItem Caption="ラベル" />
+    </AppointmentCompactFormLayout>
+</DxScheduler>
+
+@code {
+
+    int apptCount = 0;
+    DateTime currentDate = DateTime.Today;
+    DateTime startDate = new DateTime();
+    DateTime endDate = new DateTime();
+    SchedulerViewType activeType = SchedulerViewType.Day;
+
+    DxSchedulerDataStorage DataStorage = new DxSchedulerDataStorage()
+        {
+            AppointmentMappings = new DxSchedulerAppointmentMappings()
+            {
+                Id = "AppointmentId",
+                Start = "StartDate",
+                End = "EndDate",
+                Subject = "Caption",
+                LabelId = "Label",
+                StatusId = "Status",
+                AllDay = "AllDay",
+                Type = "AppointmentType",
+
+            },
+            AppointmentStatusSource = StatusCollection.GetStatuses(),
+            AppointmentStatusMappings = new DxSchedulerAppointmentStatusMappings()
+            {
+                Id = "Id",
+                Caption = "StatusCaption",
+                Color = "StatusColor",
+                // Uncomment the line below and comment the line above to specify other style options.
+                //CssClass = "CssClass",
+                // Map the source object's custom field to the status item's custom property.
+                CustomFieldMappings = new List<DxSchedulerCustomFieldMapping> {
+                new DxSchedulerCustomFieldMapping { Name = "MyCustomProperty", Mapping = "MyCustomField" }
+                }
+            },
+        };
+
+    List<Appointment> Appointments = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAppointmentsAsync();
+    }
+
+
+    async Task OnStartDateChanged(DateTime newStartDate)
+    {
+        currentDate = newStartDate;
+        await LoadAppointmentsAsync();
+    }
+
+    async Task OnActiveViewChanged(SchedulerViewType newView)
+    {
+        activeType = newView;
+        await LoadAppointmentsAsync();
+    }
+
+    async Task LoadAppointmentsAsync()
+    {
+        switch (activeType)
+        {
+            case SchedulerViewType.Day:
+                startDate = currentDate;
+                endDate = currentDate.AddDays(1);
+                break;
+
+            case SchedulerViewType.Week:
+                startDate = currentDate.StartOfWeek(DayOfWeek.Sunday);
+                endDate = startDate.AddDays(7);
+                break;
+
+            case SchedulerViewType.Month:
+                startDate = currentDate.StartOfMonth();
+                endDate = startDate.AddMonths(1);
+                break;
+
+        }
+        try
+        {
+            // サービスを使用してデータベースからデータを取得
+            Appointments = await AppointmentService.GetAppointmentsAsync(startDate, endDate);
+            // 件数を更新
+            apptCount = Appointments.Count;
+            // DataStorageにバインド
+            DataStorage.AppointmentsSource = Appointments; // 修正: DataStorageに直接データを設定
+
+            Console.WriteLine($"Appointments count: {Appointments.Count}");
+            Console.WriteLine($"Statuses count: {StatusCollection.GetStatuses().Count}");
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+
+        }
+    }
+
+    void AppointmentInserted(DxSchedulerAppointmentItem e)
+    {
+        dbContext.Add(e.SourceObject);
+        dbContext.SaveChanges();
+
+    }
+
+    void AppointmentUpdated(DxSchedulerAppointmentItem e)
+    {
+        dbContext.SaveChanges();
+    }
+
+    void AppointmentRemoved(DxSchedulerAppointmentItem e)
+    {
+        dbContext.Remove(e.SourceObject);
+        dbContext.SaveChanges();
+    }
+
+    public void Dispose()
+    {
+        dbContext?.Dispose();
+
+    }
+}

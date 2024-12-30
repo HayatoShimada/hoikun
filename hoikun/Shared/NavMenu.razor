@@ -6,20 +6,39 @@
 @inject UserStateService UserStateService
 
 <div class="sidebar @StateCssClass">
-<DxTreeView AllowSelectNodes="true" CssClass="app-sidebar">
-    <Nodes>
-        <DxTreeViewNode NavigateUrl="./" Text="Overview"></DxTreeViewNode>
-    </Nodes>
-
-    <Nodes>
-        <DxTreeViewNode Text="プロフィール">
-            <Nodes>
-                <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignIn" Text="ログイン"></DxTreeViewNode>
-                <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignOut" Text="ログアウト"></DxTreeViewNode>
-            </Nodes>
-        </DxTreeViewNode>
-    </Nodes>
-</DxTreeView>
+    <DxTreeView AllowSelectNodes="true" CssClass="app-sidebar">
+        <Nodes>
+            <DxTreeViewNode NavigateUrl="/" Text="Home" />
+            <DxTreeViewNode Text="スケジュール">
+                <Nodes>
+                    <DxTreeViewNode NavigateUrl="/schedule" Text="全体日程" />
+                    @if (UserStateService.Role == "admin")
+                    {
+                        <DxTreeViewNode NavigateUrl="/createshift" Text="シフト作成" />
+                        <DxTreeViewNode NavigateUrl="/schedule_shift" Text="シフト確認" />
+                        <DxTreeViewNode NavigateUrl="/schedule_class" Text="クラス日程作成" />
+                    }
+                    else if (UserStateService.Role == "admin" || UserStateService.Role == "teacher")
+                    {
+                        <DxTreeViewNode NavigateUrl="/schedule_shift" Text="シフト確認" />
+                        <DxTreeViewNode NavigateUrl="/schedule_class" Text="クラス日程作成" />
+                    }
+                </Nodes>
+            </DxTreeViewNode>
+            <DxTreeViewNode Text="プロフィール">
+                <Nodes>
+                    @if(UserStateService.IsLoggedIn)
+                    {
+                        <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignOut" Text="ログアウト" />
+                    }
+                    else
+                    {
+                        <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignIn" Text="ログイン" />
+                    }
+                </Nodes>
+            </DxTreeViewNode>
+        </Nodes>
+    </DxTreeView>
 </div>
 
 @code {
@@ -36,13 +55,19 @@
             var givenName = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
             var surname = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
             UserStateService.Username = $"{surname}{givenName}".Trim();
+            var id = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            UserStateService.Id = id;
+            var role = user.Claims.FirstOrDefault(c => c.Type == "jobTitle")?.Value ?? string.Empty;
+            UserStateService.Role = role; // 必要に応じてサービスに保存
+
         }
         else
         {
             UserStateService.Email = string.Empty;
             UserStateService.Username = string.Empty;
+            UserStateService.Role = string.Empty; // ロールもリセット
             StateHasChanged();
-
         }
     }
+
 }

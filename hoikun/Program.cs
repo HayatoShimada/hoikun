@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -24,6 +25,10 @@ builder.Services.AddControllersWithViews(options =>
         .Build();
     options.Filters.Add(new AuthorizeFilter(policy));
 });
+
+builder.Services.AddRazorPages()
+    .AddMicrosoftIdentityUI();
+
 
 // SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -58,6 +63,12 @@ app.UseStaticFiles();
 
 app.UseRouting();
 
+// ”FØ‚Æ”F‰Â‚ğ—LŒø‰»
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapControllers();
+app.MapRazorPages();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
