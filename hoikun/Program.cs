@@ -17,6 +17,10 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddInMemoryTokenCaches();
 builder.Services.AddScoped<UserStateService>();
 
+
+// Add services to the container.
+builder.Services.AddScoped<BlobStorageService>();
+
 // グローバル認証ポリシーの設定
 builder.Services.AddControllersWithViews(options =>
 {

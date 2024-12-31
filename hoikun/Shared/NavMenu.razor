@@ -49,16 +49,31 @@
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
-        if (user.Identity?.IsAuthenticated == true)
+        if (user.Identity?.IsAuthenticated == true && UserStateService.Email == string.Empty)
         {
             UserStateService.Email = user.Claims.FirstOrDefault(c => c.Type == "emails")?.Value ?? string.Empty;
+            
             var givenName = user.FindFirst(ClaimTypes.GivenName)?.Value ?? string.Empty;
             var surname = user.FindFirst(ClaimTypes.Surname)?.Value ?? string.Empty;
             UserStateService.Username = $"{surname}{givenName}".Trim();
+            
             var id = user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
             UserStateService.Id = id;
+            
             var role = user.Claims.FirstOrDefault(c => c.Type == "jobTitle")?.Value ?? string.Empty;
             UserStateService.Role = role; // 必要に応じてサービスに保存
+
+            var postalCode = user.Claims.FirstOrDefault(c => c.Type == "postalCode")?.Value ?? string.Empty;
+            UserStateService.PostalCode = postalCode;
+
+            var state = user.Claims.FirstOrDefault(c => c.Type == "state")?.Value ?? string.Empty;
+            UserStateService.State = state;
+
+            var city = user.Claims.FirstOrDefault(c => c.Type == "city")?.Value ?? string.Empty;
+            UserStateService.PostalCode = city;
+
+            var street = user.Claims.FirstOrDefault(c => c.Type == "streetAddress")?.Value ?? string.Empty;
+            UserStateService.Street = street;
 
         }
         else

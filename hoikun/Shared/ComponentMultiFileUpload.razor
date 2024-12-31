@@ -1,0 +1,102 @@
+﻿@using Azure.Storage.Sas
+@using hoikun.Data
+@using hoikun.Services
+@using Microsoft.EntityFrameworkCore
+@using System.Text.RegularExpressions
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using FluentValidation
+@using FluentValidation.Results
+@using Azure.Identity
+@using Azure.Storage
+@using Azure.Storage.Blobs
+@using Azure.Storage.Blobs.Models
+@using Azure.Storage.Blobs.Specialized
+@inject BlobStorageService BlobService
+
+@inject NavigationManager Navigation
+@inject ApplicationDbContext dbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Configuration
+@inject UserStateService UserStateService
+
+@* 書類提出フォーム *@
+<div id="overviewDemoDropZone" class="card custom-drop-zone rounded-3 w-100 m-0">
+    <span class="drop-file-icon mb-3"></span>
+    <span class="drop-file-label">Drag and Drop File Here</span><span class="m-1">or</span>
+    <DxButton Id="overviewDemoSelectButton"
+              CssClass="m-1"
+              RenderStyle="ButtonRenderStyle.Primary"
+              Text="Select File" />
+</div>
+<DxFileInput UploadMode="@UploadMode.OnButtonClick"
+             AllowMultiFileUpload="true"
+             MaxFileSize="15000000"
+             SelectedFilesChanged="@SelectedFilesChanged"
+             FilesUploading="OnFilesUploading">
+</DxFileInput>
+<br />
+
+@code {
+
+    [Parameter]
+    public User user { get; set; } = new User();
+
+    // アップロードロジック
+
+
+    private readonly List<string> _fileNames = new();
+    IList<IBrowserFile> files = new List<IBrowserFile>();
+    private List<Rout> route = new List<Rout>();
+    private bool isUploading = false;
+
+    // アップロードファイルの表示ロジック
+    private List<BlobFileInfo> _blobFiles = new();
+    private bool _isBlobLoading = false;
+
+    private async Task LoadFiles()
+    {
+        _isBlobLoading = true;
+        _blobFiles = await BlobService.LoadFilesAsync(user.UserId);
+        _isBlobLoading = false;
+
+    }
+
+    // ファイルの削除ロジック
+    private async Task DeleteFile(BlobFileInfo file)
+    {
+        await BlobService.DeleteFileAsync(file, user.UserId);
+    }
+
+
+    int SelectedFilesCount { get; set; }
+    protected void SelectedFilesChanged(IEnumerable<UploadFileInfo> files) {
+        SelectedFilesCount = files.ToList().Count;
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected async Task OnFilesUploading(FilesUploadingEventArgs args)
+    {
+        var fileStreams = new List<(Stream Stream, string FileName)>();
+
+        foreach (var selectedFile in args.Files)
+        {
+            // ストリームを取得し、ファイル名とともにリストに追加
+            Stream stream = selectedFile.OpenReadStream();
+            fileStreams.Add((stream, selectedFile.Name));
+        }
+
+        isUploading = true;
+        await BlobService.UploadFilesAsync(user.UserId, fileStreams);
+
+        // ストリームを閉じる
+        foreach (var file in fileStreams)
+        {
+            file.Stream.Dispose();
+        }
+
+        await LoadFiles();
+        isUploading = false;
+    }
+
+}

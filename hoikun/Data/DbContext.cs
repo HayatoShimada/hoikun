@@ -7,9 +7,11 @@ namespace hoikun.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options) { }
         public DbSet<User> Users { get; set; }
         public DbSet<Children> Childrens { get; set; }
+        public DbSet<EmergencyContact> EmergencyContacts { get; set; }
         public DbSet<Class> Classes { get; set; }
         public DbSet<Appointment> Appointments { get; set; }
         public DbSet<UserAppointment> UserAppointments { get; set; }
+        public DbSet<Rout> Routs { get; set; }
     }
 
     public class User
@@ -17,11 +19,11 @@ namespace hoikun.Data
         public int UserId { get; set; }
         public string AADB2CUserId { get; set; } = string.Empty;
         public string Name { get; set; }
-
-        public string Phone { get; set; }
-
+        public string? PostalCode { get; set; }
+        public string? State { get; set; }
+        public string? City { get; set; }
+        public string? Street { get; set; }
         public string Email { get; set; }
-
         public string Role { get; set; }
         public string? AdditionalInfo { get; set; }
         public DateTime CreatedAt { get; set; }
@@ -39,7 +41,7 @@ namespace hoikun.Data
 
     public partial class Children
     {
-        public int ChildId { get; set; }
+        public int Id { get; set; }
 
         public int ClassId { get; set; }
 
@@ -66,7 +68,7 @@ namespace hoikun.Data
 
     public partial class Class
     {
-        public int ClassesId { get; set; }
+        public int Id { get; set; }
 
         public int TeacherId { get; set; }
 
@@ -77,7 +79,7 @@ namespace hoikun.Data
 
     public partial class EmergencyContact
     {
-        public int ContactId { get; set; }
+        public int Id { get; set; }
 
         public int? UserId { get; set; }
 
@@ -95,4 +97,22 @@ namespace hoikun.Data
 
         public virtual User? User { get; set; }
     }
+
+    public partial class Rout
+    {
+        public int Id { get; set; }
+
+        public int? UserId { get; set; }
+
+        public string? CommuteCategory { get; set; }
+
+        public string? PhotoLocation { get; set; }
+
+        public DateTime? CreatedAt { get; set; }
+
+        public DateTime? UpdatedAt { get; set; }
+
+        public virtual User? User { get; set; }
+    }
+
 }
