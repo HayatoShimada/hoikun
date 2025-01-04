@@ -23,16 +23,20 @@
 @* 書類提出フォーム *@
 <div id="overviewDemoDropZone" class="card custom-drop-zone rounded-3 w-100 m-0">
     <span class="drop-file-icon mb-3"></span>
-    <span class="drop-file-label">Drag and Drop File Here</span><span class="m-1">or</span>
+    <span class="drop-file-label">画像をドラッグ&ドロップ。</span><span class="m-1">or</span>
     <DxButton Id="overviewDemoSelectButton"
               CssClass="m-1"
               RenderStyle="ButtonRenderStyle.Primary"
-              Text="Select File" />
+              Text="画像を選択" />
 </div>
 <DxFileInput UploadMode="@UploadMode.OnButtonClick"
+             ExternalSelectButtonCssSelector="#overviewDemoSelectButton"
+             ExternalDropZoneCssSelector="#overviewDemoDropZone"
+             ExternalDropZoneDragOverCssClass="custom-drop-zone-hover"
              AllowMultiFileUpload="true"
              MaxFileSize="15000000"
              SelectedFilesChanged="@SelectedFilesChanged"
+             SelectButtonText="画像を選択"
              FilesUploading="OnFilesUploading">
 </DxFileInput>
 <br />
@@ -43,8 +47,6 @@
     public User user { get; set; } = new User();
 
     // アップロードロジック
-
-
     private readonly List<string> _fileNames = new();
     IList<IBrowserFile> files = new List<IBrowserFile>();
     private List<Rout> route = new List<Rout>();
@@ -54,19 +56,8 @@
     private List<BlobFileInfo> _blobFiles = new();
     private bool _isBlobLoading = false;
 
-    private async Task LoadFiles()
-    {
-        _isBlobLoading = true;
-        _blobFiles = await BlobService.LoadFilesAsync(user.UserId);
-        _isBlobLoading = false;
-
-    }
-
-    // ファイルの削除ロジック
-    private async Task DeleteFile(BlobFileInfo file)
-    {
-        await BlobService.DeleteFileAsync(file, user.UserId);
-    }
+    [Parameter]
+    public EventCallback<bool> OnUploadCompleted { get; set; } // 親に通知するコールバック
 
 
     int SelectedFilesCount { get; set; }
@@ -81,22 +72,29 @@
 
         foreach (var selectedFile in args.Files)
         {
-            // ストリームを取得し、ファイル名とともにリストに追加
             Stream stream = selectedFile.OpenReadStream();
             fileStreams.Add((stream, selectedFile.Name));
         }
 
-        isUploading = true;
-        await BlobService.UploadFilesAsync(user.UserId, fileStreams);
-
-        // ストリームを閉じる
-        foreach (var file in fileStreams)
+        try
         {
-            file.Stream.Dispose();
-        }
+            await BlobService.UploadFilesAsync(user.UserId, fileStreams);
 
-        await LoadFiles();
-        isUploading = false;
+            // アップロード成功通知
+            await OnUploadCompleted.InvokeAsync(true);
+        }
+        catch
+        {
+            // アップロード失敗通知
+            await OnUploadCompleted.InvokeAsync(false);
+        }
+        finally
+        {
+            foreach (var file in fileStreams)
+            {
+                file.Stream.Dispose();
+            }
+        }
     }
 
 }

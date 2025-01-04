@@ -5,6 +5,7 @@
 @using Microsoft.EntityFrameworkCore
 @using Microsoft.AspNetCore.Components.Authorization
 
+@inject NavigationManager NavigationManager
 @inject ApplicationDbContext dbContext
 @inject AppointmentService AppointmentService
 
@@ -19,12 +20,19 @@
              AppointmentInserted="@AppointmentInserted"
              AppointmentRemoved="@AppointmentRemoved">
     <Views>
-        <DxSchedulerDayView DayCount="1" ShowWorkTimeOnly="false"></DxSchedulerDayView>
+        <DxSchedulerDayView  DayCount="1" ShowWorkTimeOnly="false"></DxSchedulerDayView>
         <DxSchedulerWeekView></DxSchedulerWeekView>
         <DxSchedulerMonthView CellMinWidth="120"></DxSchedulerMonthView>
     </Views>
 
-    <AppointmentCompactFormLayout>
+    <AppointmentCompactFormHeaderTemplate>
+        <div class="popup-text-header">@context.Subject</div>
+        <DxSchedulerSaveAppointmentChangesButton Text="保存"></DxSchedulerSaveAppointmentChangesButton>
+        <DxSchedulerDeleteAppointmentButton Text="削除"></DxSchedulerDeleteAppointmentButton>
+
+    </AppointmentCompactFormHeaderTemplate>
+
+    <AppointmentCompactFormLayout Context="formInfo">
         <DxSchedulerSubjectFormLayoutItem Caption="件名" />
         <DxSchedulerAllDayFormLayoutItem Caption="終日" />
         <DxSchedulerStartDateFormLayoutItem Caption="開始日" />
@@ -33,10 +41,46 @@
         <DxSchedulerEndTimeFormLayoutItem Caption="終了時間" />
         <DxSchedulerStatusFormLayoutItem Caption="状態" ShowIcon="true" />
         <DxSchedulerLabelFormLayoutItem Caption="ラベル" />
+        <DxSchedulerCustomFormLayoutItem>
+            <Template>
+                <div style="margin-left: auto; margin-top: 14px;">
+                    <p>共有範囲</p>
+                    <DxCheckBox @bind-Checked="@_isAll"
+                                AllowIndeterminateStateByClick="true"
+                                @onchange="AllChecked"
+                                CssClass="mb-1">
+                        全体
+                    </DxCheckBox>
+                    <DxCheckBox @bind-Checked="@_isTeacher"
+                                AllowIndeterminateStateByClick="true"
+                                @onchange="TeacherChecked"
+                                CssClass="mb-1">
+                        先生
+                    </DxCheckBox>
+                    <DxCheckBox @bind-Checked="@_isClass"
+                                AllowIndeterminateStateByClick="true"
+                                @onchange="ClassChecked"
+                                CssClass="mb-1">
+                        指定クラス
+                    </DxCheckBox>
+                    <DxComboBox Data="@classes"
+                                @bind-Value="@selectedClass"
+                                NullText="クラスを選択してください"
+                                TextFieldName="@nameof(Class.Name)"
+                                ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                                Enabled="@_isClass"
+                                InputId="cbOccupation" />
+                </div>
+            </Template>
+        </DxSchedulerCustomFormLayoutItem>
+
     </AppointmentCompactFormLayout>
 </DxScheduler>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery(Name = "view")]
+    public int? QueryView { get; set; }
 
     int apptCount = 0;
     DateTime currentDate = DateTime.Today;
@@ -44,6 +88,18 @@
     DateTime endDate = new DateTime();
     SchedulerViewType activeType = SchedulerViewType.Day;
 
+    List<Appointment> Appointments = new();
+
+    private bool isDisposed = false; // リソース解放を追跡
+
+    private bool _isAll = false;
+    private bool _isTeacher = false;
+    private bool _isClass = false;
+
+    List<Class> classes = new List<Class>();
+    Class? selectedClass = null;
+
+    // スケジュールの定義
     DxSchedulerDataStorage DataStorage = new DxSchedulerDataStorage()
         {
             AppointmentMappings = new DxSchedulerAppointmentMappings()
@@ -56,7 +112,6 @@
                 StatusId = "Status",
                 AllDay = "AllDay",
                 Type = "AppointmentType",
-
             },
             AppointmentStatusSource = StatusCollection.GetStatuses(),
             AppointmentStatusMappings = new DxSchedulerAppointmentStatusMappings()
@@ -73,26 +128,80 @@
             },
         };
 
-    List<Appointment> Appointments = new();
-
-    protected override async Task OnInitializedAsync()
+    // クエリパラメータの管理
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
     {
-        await LoadAppointmentsAsync();
+        // ページをリフレッシュする
+        var uri = NavigationManager.Uri;
+        NavigationManager.NavigateTo(uri, forceLoad: true); // forceLoad で完全リロード
     }
 
 
+    protected override async Task OnInitializedAsync()
+    {
+        // クエリパラメータに基づいて activeType を設定
+        if (QueryView.HasValue && Enum.IsDefined(typeof(SchedulerViewType), QueryView.Value))
+        {
+            switch (QueryView)
+            {
+                case 0:
+                    activeType = SchedulerViewType.Month;
+                    break;
+
+                case 1:
+                    activeType = SchedulerViewType.Week;
+                    break;
+
+                case 2:
+                    activeType = SchedulerViewType.Day;
+                    break;
+            }
+        }
+
+        NavigationManager.LocationChanged += OnLocationChanged;
+
+        classes = await dbContext.Classes.ToListAsync();
+        await LoadAppointmentsAsync();
+    }
+
+    // チェックボックスの管理
+    private void AllChecked()
+    {
+        _isAll = true;
+        _isTeacher = false;
+        _isClass = false;
+    }
+
+    private void TeacherChecked()
+    {
+        _isAll = false;
+        _isTeacher = true;
+        _isClass = false;
+    }
+
+    private void ClassChecked()
+    {
+        _isAll = false;
+        _isTeacher = false;
+        _isClass = true;
+    }
+
+
+    // 日付が変更された
     async Task OnStartDateChanged(DateTime newStartDate)
     {
         currentDate = newStartDate;
         await LoadAppointmentsAsync();
     }
 
+    // スケジュールのビューが変更された
     async Task OnActiveViewChanged(SchedulerViewType newView)
     {
         activeType = newView;
         await LoadAppointmentsAsync();
     }
 
+    // 初期化
     async Task LoadAppointmentsAsync()
     {
         switch (activeType)
@@ -120,7 +229,7 @@
             // 件数を更新
             apptCount = Appointments.Count;
             // DataStorageにバインド
-            DataStorage.AppointmentsSource = Appointments; // 修正: DataStorageに直接データを設定
+            DataStorage.AppointmentsSource = Appointments;
 
             Console.WriteLine($"Appointments count: {Appointments.Count}");
             Console.WriteLine($"Statuses count: {StatusCollection.GetStatuses().Count}");
@@ -133,27 +242,94 @@
         }
     }
 
-    void AppointmentInserted(DxSchedulerAppointmentItem e)
+    void AppointmentInserted(DxSchedulerAppointmentItem e) => SaveAppointment(e, true);
+
+    void AppointmentUpdated(DxSchedulerAppointmentItem e) => SaveAppointment(e, false);
+
+    // 予定が追加された
+    void SaveAppointment(DxSchedulerAppointmentItem e, bool isNew)
     {
-        dbContext.Add(e.SourceObject);
+        var appointment = e.SourceObject as Appointment;
+        if (appointment == null)
+        {
+            Console.WriteLine("Appointment data is missing.");
+            return;
+        }
+
+        if (!_isAll && !_isTeacher && !_isClass)
+        {
+            Console.WriteLine("No sharing scope selected.");
+            return;
+        }
+
+        if (_isClass && selectedClass == null)
+        {
+            Console.WriteLine("Class not selected.");
+            return;
+        }
+
+        appointment.UserId = UserStateService.ModelId;
+        appointment.CreatedAt = DateTime.Now;
+
+        if (_isClass)
+        {
+            appointment.ClassId = selectedClass?.Id ?? 1;
+            appointment.IsClass = true;
+        }
+        else if (_isTeacher)
+        {
+            appointment.IsTeacher = true;
+        }
+        else if (_isAll)
+        {
+            appointment.IsAll = true;
+        }
+
+        if (isNew)
+        {
+            dbContext.Appointments.Add(appointment);
+        }
+        else
+        {
+            dbContext.Appointments.Update(appointment);
+        }
+
         dbContext.SaveChanges();
 
+        if (isNew)
+        {
+            var userAppointment = new UserAppointment
+                {
+                    UserId = UserStateService.ModelId ?? 1,
+                    AppointmentId = appointment.AppointmentId,
+                    Role = UserStateService.Role,
+                };
+
+            dbContext.UserAppointments.Add(userAppointment);
+            dbContext.SaveChanges();
+        }
+
+        Console.WriteLine($"Appointment {(isNew ? "added" : "updated")}: Id = {appointment.AppointmentId}");
     }
 
-    void AppointmentUpdated(DxSchedulerAppointmentItem e)
-    {
-        dbContext.SaveChanges();
-    }
 
+    // 予定が削除された
     void AppointmentRemoved(DxSchedulerAppointmentItem e)
     {
         dbContext.Remove(e.SourceObject);
         dbContext.SaveChanges();
     }
 
+    // ページがリフレッシュされた
     public void Dispose()
     {
         dbContext?.Dispose();
-
+        if (!isDisposed)
+        {
+            // LocationChanged ハンドラーを解除
+            NavigationManager.LocationChanged -= OnLocationChanged;
+            isDisposed = true;
+        }
     }
+
 }

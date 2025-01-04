@@ -37,6 +37,31 @@ namespace hoikun.Data
         public int UserId { get; set; }
         public int AppointmentId { get; set; }
         public string Role { get; set; }
+
+
+    }
+
+    public class Appointment
+    {
+        public int AppointmentId { get; set; }
+        public int? ClassId { get; set; }
+        public int? UserId { get; set; }
+        public string Caption { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public int Status { get; set; }
+        public int Label { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public DateTime? UpdatedAt { get; set; }
+        public int AppointmentType { get; set; }
+        public bool AllDay { get; set; } = false;
+        public bool IsAll { get; set; } = false;
+        public bool IsTeacher { get; set; } = false;
+        public bool IsClass { get; set; } = false;
+        public virtual Class Class { get; set; } = null!;
+        public virtual User User { get; set; } = null!;
+
+
     }
 
     public partial class Children
@@ -49,7 +74,7 @@ namespace hoikun.Data
 
         public string? Name { get; set; }
 
-        public string? Birthday { get; set; }
+        public DateTime? Birthday { get; set; }
 
         public string? AllergyInfo { get; set; }
 
@@ -114,5 +139,7 @@ namespace hoikun.Data
 
         public virtual User? User { get; set; }
     }
+
+
 
 }

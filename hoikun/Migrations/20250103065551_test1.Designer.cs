@@ -12,8 +12,8 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20241231074511_AddLocationToAppointment2")]
-    partial class AddLocationToAppointment2
+    [Migration("20250103065551_test1")]
+    partial class test1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -43,11 +43,23 @@ namespace hoikun.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ClassId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsAll")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsClass")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsTeacher")
+                        .HasColumnType("bit");
 
                     b.Property<int>("Label")
                         .HasColumnType("int");
@@ -61,7 +73,14 @@ namespace hoikun.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
                     b.HasKey("AppointmentId");
+
+                    b.HasIndex("ClassId");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Appointments");
                 });
@@ -77,8 +96,8 @@ namespace hoikun.Migrations
                     b.Property<string>("AllergyInfo")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("Birthday")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<DateTime?>("Birthday")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("ClassId")
                         .HasColumnType("int");
@@ -165,6 +184,36 @@ namespace hoikun.Migrations
                     b.ToTable("EmergencyContacts");
                 });
 
+            modelBuilder.Entity("hoikun.Data.Rout", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CommuteCategory")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PhotoLocation")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("Routs");
+                });
+
             modelBuilder.Entity("hoikun.Data.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -235,6 +284,21 @@ namespace hoikun.Migrations
                     b.ToTable("UserAppointments");
                 });
 
+            modelBuilder.Entity("hoikun.Data.Appointment", b =>
+                {
+                    b.HasOne("hoikun.Data.Class", "Class")
+                        .WithMany()
+                        .HasForeignKey("ClassId");
+
+                    b.HasOne("hoikun.Data.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("Class");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("hoikun.Data.Children", b =>
                 {
                     b.HasOne("hoikun.Data.Class", "Class")
@@ -255,6 +319,15 @@ namespace hoikun.Migrations
                 });
 
             modelBuilder.Entity("hoikun.Data.EmergencyContact", b =>
+                {
+                    b.HasOne("hoikun.Data.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("hoikun.Data.Rout", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
                         .WithMany()

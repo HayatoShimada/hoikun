@@ -5,9 +5,8 @@
 @inject ApplicationDbContext dbContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserStateService UserStateService
+<div class="mb-20">
 
-
-<div class="card cw-480">
     <EditForm Model="@Data" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator />
         <DxFormLayout>
@@ -21,6 +20,18 @@
 
             @foreach (var child in Data.Children)
             {
+                <div class="dxbl-col px-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <p>@child.Rank 人目</p>
+
+                    </div>
+                    <div>
+                        <DxButton CssClass="w-100"
+                                  RenderStyle="ButtonRenderStyle.Danger"
+                                  @onclick="(() => DeleteChild(child))" Text="児童を削除" />
+                    </div>
+                </div>
+
                 <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
                     <label for="tbUsername" class="d-none">児童名</label>
                     <DxTextBox @bind-Text="@child.Name"
@@ -34,10 +45,12 @@
 
                 <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
                     <label for="tbUsername" class="d-none">児童の誕生日</label>
-                    <DxTextBox @bind-Text="@child.Birthday"
-                               NullText="誕生日を入力してください。"
-                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                               InputId="tbChildBirthday" />
+
+                    <DxDateEdit NullText="誕生日を入力してください。" 
+                        ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                        InputId="tbChildBirthday" 
+                        @bind-Date="@child.Birthday" 
+                        Mask="@DateTimeMask.ShortDate" />
                     <div class="text-danger">
                         <ValidationMessage For="@(() => child.Birthday)" />
                     </div>
@@ -57,28 +70,23 @@
                 <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
                     <label for="tbUsername" class="d-none">児童の備考</label>
                     <DxMemo @bind-Text="@child.Notes"
-                               NullText="その他、園に伝えたい情報を入力してください。"
-                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                               InputId="tbChildNote" />
+                            NullText="その他、園に伝えたい情報を入力してください。"
+                            ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                            InputId="tbChildNote" />
                     <div class="text-danger">
                         <ValidationMessage For="@(() => child.Notes)" />
                     </div>
                 </DxFormLayoutItem>
-                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
-                    <ChildContent>
-                        <DxButton CssClass="w-100"
-                                  RenderStyle="ButtonRenderStyle.Danger"
-                                  @onclick="(() => DeleteChild(child))" Text="児童を削除" />
-                    </ChildContent>
-                </DxFormLayoutItem>
+
             }
 
             <DxFormLayoutItem Context="Context" ColSpanMd="12">
                 <ChildContent>
-                    <DxButton CssClass="w-100" 
-                        RenderStyle="ButtonRenderStyle.Secondary"
-                        Context="add_child" 
-                        @onclick="AddChild" Text="児童を追加" />
+                    <DxButton CssClass="w-100"
+                              RenderStyle="ButtonRenderStyle.Primary"
+                              RenderStyleMode="ButtonRenderStyleMode.Outline"
+                              Context="add_child"
+                              @onclick="AddChild" Text="児童を追加" />
                 </ChildContent>
             </DxFormLayoutItem>
 
@@ -91,6 +99,22 @@
 
             @foreach (var contact in Data.Contacts)
             {
+                <div class="dxbl-col px-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <p>連絡先 @contact.Rank</p>
+                    </div>
+                    <div>
+                        <DxButton RenderStyle="ButtonRenderStyle.Danger"
+                                  @onclick="(() => DeleteEmergencyContact(contact))"
+                                  Text="緊急連絡先を削除" />
+                    </div>
+                </div>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="6">
+                    <ChildContent>
+                        
+                    </ChildContent>
+                </DxFormLayoutItem>
                 <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
                     <label for="tbUsername" class="d-none">続柄</label>
                     <DxComboBox Data="@_relations"
@@ -119,37 +143,38 @@
                         <ValidationMessage For="@(() => contact.Tel)" />
                     </div>
                 </DxFormLayoutItem>
-
-                <DxFormLayoutItem Context="Context" ColSpanMd="12">
-                    <ChildContent>
-                        <DxButton CssClass="w-100"
-                                  RenderStyle="ButtonRenderStyle.Danger"
-                                  @onclick="(() => DeleteEmergencyContact(contact))" Text="緊急連絡先を削除" />
-                    </ChildContent>
-                </DxFormLayoutItem>
             }
 
             <DxFormLayoutItem Context="Context" ColSpanMd="12">
                 <ChildContent>
                     <DxButton CssClass="w-100"
-                              RenderStyle="ButtonRenderStyle.Secondary"
+                              RenderStyle="ButtonRenderStyle.Primary"
+                              RenderStyleMode="ButtonRenderStyleMode.Outline"          
                               Context="add_child"
                               @onclick="AddEmergencyContact" Text="緊急連絡先を追加" />
                 </ChildContent>
             </DxFormLayoutItem>
             <DxFormLayoutItem Context="Context" ColSpanMd="12">
-                <ComponentMultiFileUpload />
+                <h5>通園経路画像のアップロード</h5>
+                <ComponentMultiFileUpload OnUploadCompleted="HandleUploadCompleted" />
 
             </DxFormLayoutItem>
 
-            <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+            <DxFormLayoutItem Context="layoutContext" ColSpanMd="12" CssClass="mb-10">
                 <DxButton CssClass="w-100" RenderStyle="ButtonRenderStyle.Success" SubmitFormOnClick="true" Text="登録" />
             </DxFormLayoutItem>
         </DxFormLayout>
     </EditForm>
 
     <p>@FormSubmitResult</p>
+
 </div>
+
+<br />
+<br />
+<br />
+<br />
+
 
 @code {
     private Register Data { get; set; } = new Register();
@@ -161,6 +186,30 @@
     protected override async Task OnInitializedAsync()
     {
         var existingUser = dbContext.Users.FirstOrDefault(p => p.Email == UserStateService.Email);
+
+        // データベースクエリは認証状態の設定後に実行
+        if (!UserStateService.IsRegister)
+        {
+            try
+            {
+                if (existingUser != null)
+                {
+                    UserStateService.IsRegister = true;
+                    UserStateService.ModelId = existingUser.UserId;
+                }
+                else
+                {
+                    UserStateService.IsRegister = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"エラー発生。{ex.Message}");
+
+            }
+
+
+        }
 
         if (existingUser != null)
         {
@@ -180,50 +229,76 @@
             dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync();
         }
-        
+
         Data.Children.Add(new Children
         {
             Name = "",
-            Birthday = "",
+            ClassId = 1,
+            Rank = Data.Children.Count + 1,
             AllergyInfo = "",
+                Birthday = DateTime.Now.AddYears(-3),
             Notes = "",
             CreatedAt = DateTime.Now
         });
 
         Data.Contacts.Add(new EmergencyContact
-            {
-                Tel = "",
-                Rank = Data.Contacts.Count + 1
-            });
+        {
+            Tel = "",
+            Rank = Data.Contacts.Count + 1
+        });
     }
 
+    private bool IsFileUploadedSuccessfully = false;
+
+    private void HandleUploadCompleted(bool isSuccess)
+    {
+        IsFileUploadedSuccessfully = isSuccess;
+
+        if (isSuccess)
+        {
+            Console.WriteLine("ファイルが正常にアップロードされました！");
+        }
+        else
+        {
+            Console.WriteLine("ファイルのアップロードに失敗しました。");
+        }
+    }
 
     private async Task HandleValidSubmit()
     {
-        try
+        if (IsFileUploadedSuccessfully)
         {
-            // Assign UserId to all children and contacts
-            foreach (var child in Data.Children)
+            try
             {
-                child.UserId = user.UserId;
-            }
+                // Assign UserId to all children and contacts
+                foreach (var child in Data.Children)
+                {
+                    child.UserId = user.UserId;
+                }
 
-            foreach (var contact in Data.Contacts)
+                foreach (var contact in Data.Contacts)
+                {
+                    contact.UserId = user.UserId;
+                }
+
+                // Save to database
+                dbContext.Childrens.AddRange(Data.Children);
+                dbContext.EmergencyContacts.AddRange(Data.Contacts);
+                await dbContext.SaveChangesAsync();
+
+                FormSubmitResult = "登録が完了しました。";
+            }
+            catch (Exception ex)
             {
-                contact.UserId = user.UserId;
+                FormSubmitResult = $"エラーが発生しました。 {ex.Message}";
             }
-
-            // Save to database
-            dbContext.Childrens.AddRange(Data.Children);
-            dbContext.EmergencyContacts.AddRange(Data.Contacts);
-            await dbContext.SaveChangesAsync();
-
-            FormSubmitResult = "Registration successful.";
         }
-        catch (Exception ex)
+        else
         {
-            FormSubmitResult = $"An error occurred: {ex.Message}";
+            FormSubmitResult = $"通園経路画像をファイルをアップロードしてください。";
+
         }
+
     }
 
     private void AddChild()
@@ -231,8 +306,10 @@
         Data.Children.Add(new Children
             {
                 Name = "",
-                Birthday = "",
+                Rank = Data.Children.Count + 1,
+                ClassId = 1,
                 AllergyInfo = "",
+                Birthday = DateTime.Now.AddYears(-3),
                 Notes = "",
                 CreatedAt = DateTime.Now
             });
@@ -241,6 +318,7 @@
     private void DeleteChild(Children child)
     {
         Data.Children.Remove(child);
+
     }
 
     private void AddEmergencyContact()
@@ -262,4 +340,6 @@
         public List<Children> Children { get; set; } = new List<Children>();
         public List<EmergencyContact> Contacts { get; set; } = new List<EmergencyContact>();
     }
+
+
 }
