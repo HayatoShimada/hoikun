@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
+using Microsoft.Extensions.Azure;
+using Microsoft.Azure.SignalR;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
