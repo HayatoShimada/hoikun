@@ -30,9 +30,9 @@
     public class StatusObject
     {
         public int Id { get; set; }
-        public string StatusCaption { get; set; }
+        public string StatusCaption { get; set; } = string.Empty;
         public System.Drawing.Color StatusColor { get; set; }
-        public string CssClass { get; set; }
-        public string MyCustomField { get; set; } // A custom field
+        public string CssClass { get; set; } = string.Empty;
+        public string MyCustomField { get; set; } = string.Empty; // A custom field
     }
 }

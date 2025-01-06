@@ -50,11 +50,11 @@
     private readonly List<string> _fileNames = new();
     IList<IBrowserFile> files = new List<IBrowserFile>();
     private List<Rout> route = new List<Rout>();
-    private bool isUploading = false;
+    // private bool isUploading = false;
 
     // アップロードファイルの表示ロジック
     private List<BlobFileInfo> _blobFiles = new();
-    private bool _isBlobLoading = false;
+    // private bool _isBlobLoading = false;
 
     [Parameter]
     public EventCallback<bool> OnUploadCompleted { get; set; } // 親に通知するコールバック

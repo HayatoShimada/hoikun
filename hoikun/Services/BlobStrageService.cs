@@ -52,9 +52,9 @@
 
         private BlobContainerClient GetContainerClient()
         {
-            string accountName = _configuration["AzureStorageConfig:AccountName"];
-            string accountKey = _configuration["AzureStorageConfig:AccountKey"];
-            string containerName = _configuration["AzureStorageConfig:ContainerName"];
+            string? accountName = _configuration["AzureStorageConfig:AccountName"];
+            string? accountKey = _configuration["AzureStorageConfig:AccountKey"];
+            string? containerName = _configuration["AzureStorageConfig:ContainerName"];
 
             string connectionString = $"DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={accountKey};EndpointSuffix=core.windows.net";
             BlobServiceClient blobServiceClient = new(connectionString);
@@ -148,8 +148,8 @@
 
         private string GenerateSasUri(BlobClient blobClient)
         {
-            string accountName = _configuration["AzureStorageConfig:AccountName"];
-            string accountKey = _configuration["AzureStorageConfig:AccountKey"];
+            string? accountName = _configuration["AzureStorageConfig:AccountName"];
+            string? accountKey = _configuration["AzureStorageConfig:AccountKey"];
             StorageSharedKeyCredential credential = new(accountName, accountKey);
 
             BlobSasBuilder sasBuilder = new()

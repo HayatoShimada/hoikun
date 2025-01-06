@@ -18,13 +18,13 @@ namespace hoikun.Data
     {
         public int UserId { get; set; }
         public string AADB2CUserId { get; set; } = string.Empty;
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
         public string? PostalCode { get; set; }
         public string? State { get; set; }
         public string? City { get; set; }
         public string? Street { get; set; }
-        public string Email { get; set; }
-        public string Role { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string Role { get; set; } = string.Empty;
         public string? AdditionalInfo { get; set; }
         public DateTime CreatedAt { get; set; }
         public virtual ICollection<Children> Children { get; } = new List<Children>();
@@ -36,7 +36,7 @@ namespace hoikun.Data
         public int UserAppointmentId { get; set; }
         public int UserId { get; set; }
         public int AppointmentId { get; set; }
-        public string Role { get; set; }
+        public string Role { get; set; } = string.Empty;
 
 
     }
@@ -46,7 +46,7 @@ namespace hoikun.Data
         public int AppointmentId { get; set; }
         public int? ClassId { get; set; }
         public int? UserId { get; set; }
-        public string Caption { get; set; }
+        public string Caption { get; set; } = string.Empty;
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public int Status { get; set; }
