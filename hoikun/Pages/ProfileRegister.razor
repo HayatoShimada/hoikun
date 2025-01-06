@@ -1,0 +1,346 @@
+﻿@page "/register"
+@using hoikun.Data
+@using hoikun.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@inject ApplicationDbContext dbContext
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserStateService UserStateService
+<div class="mb-20">
+    <h4>新規ユーザー登録</h4>
+
+    <EditForm Model="@Data" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <DxFormLayout>
+            <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                <ChildContent>
+                    <h5>児童情報の入力</h5>
+
+                </ChildContent>
+            </DxFormLayoutItem>
+
+
+            @foreach (var child in Data.Children)
+            {
+                <div class="dxbl-col px-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <p>@child.Rank 人目</p>
+
+                    </div>
+                    <div>
+                        <DxButton CssClass="w-100"
+                                  RenderStyle="ButtonRenderStyle.Danger"
+                                  @onclick="(() => DeleteChild(child))" Text="児童を削除" />
+                    </div>
+                </div>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">児童名</label>
+                    <DxTextBox @bind-Text="@child.Name"
+                               NullText="子供の名前"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbChildName" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => child.Name)" />
+                    </div>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">児童の誕生日</label>
+
+                    <DxDateEdit NullText="誕生日を入力してください。"
+                                ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                                InputId="tbChildBirthday"
+                                @bind-Date="@child.Birthday"
+                                Mask="@DateTimeMask.ShortDate" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => child.Birthday)" />
+                    </div>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">児童のアレルギー情報</label>
+                    <DxTextBox @bind-Text="@child.AllergyInfo"
+                               NullText="アレルギーを入力してください。"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbChildAllergyInfo" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => child.AllergyInfo)" />
+                    </div>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">児童の備考</label>
+                    <DxMemo @bind-Text="@child.Notes"
+                            NullText="その他、園に伝えたい情報を入力してください。"
+                            ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                            InputId="tbChildNote" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => child.Notes)" />
+                    </div>
+                </DxFormLayoutItem>
+
+            }
+
+            <DxFormLayoutItem Context="Context" ColSpanMd="12">
+                <ChildContent>
+                    <DxButton CssClass="w-100"
+                              RenderStyle="ButtonRenderStyle.Primary"
+                              RenderStyleMode="ButtonRenderStyleMode.Outline"
+                              Context="add_child"
+                              @onclick="AddChild" Text="児童を追加" />
+                </ChildContent>
+            </DxFormLayoutItem>
+
+            <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                <ChildContent>
+                    <h5>緊急連絡先の入力</h5>
+
+                </ChildContent>
+            </DxFormLayoutItem>
+
+            @foreach (var contact in Data.Contacts)
+            {
+                <div class="dxbl-col px-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <p>連絡先 @contact.Rank</p>
+                    </div>
+                    <div>
+                        <DxButton RenderStyle="ButtonRenderStyle.Danger"
+                                  @onclick="(() => DeleteEmergencyContact(contact))"
+                                  Text="緊急連絡先を削除" />
+                    </div>
+                </div>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="6">
+                    <ChildContent>
+
+                    </ChildContent>
+                </DxFormLayoutItem>
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">続柄</label>
+                    <DxComboBox Data="@_relations"
+                                @bind-Value="@contact.Relation"
+                                NullText="緊急連絡先の続柄"
+                                ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                                InputId="cbOccupation" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">緊急連絡先の種別</label>
+                    <DxComboBox Data="@_types"
+                                @bind-Value="@contact.Type"
+                                NullText="緊急連絡先の種別"
+                                ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                                InputId="cbOccupation" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Context="layoutContext" ColSpanMd="12">
+                    <label for="tbUsername" class="d-none">電話番号</label>
+                    <DxTextBox @bind-Text="@contact.Tel"
+                               NullText="緊急連絡先の電話番号"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbChildName" />
+                    <div class="text-danger">
+                        <ValidationMessage For="@(() => contact.Tel)" />
+                    </div>
+                </DxFormLayoutItem>
+            }
+
+            <DxFormLayoutItem Context="Context" ColSpanMd="12">
+                <ChildContent>
+                    <DxButton CssClass="w-100"
+                              RenderStyle="ButtonRenderStyle.Primary"
+                              RenderStyleMode="ButtonRenderStyleMode.Outline"
+                              Context="add_child"
+                              @onclick="AddEmergencyContact" Text="緊急連絡先を追加" />
+                </ChildContent>
+            </DxFormLayoutItem>
+            <DxFormLayoutItem Context="Context" ColSpanMd="12">
+                <h5>通園経路画像のアップロード</h5>
+                <ComponentMultiFileUpload OnUploadCompleted="HandleUploadCompleted" />
+
+            </DxFormLayoutItem>
+
+            <DxFormLayoutItem Context="layoutContext" ColSpanMd="12" CssClass="mb-10">
+                <DxButton CssClass="w-100" RenderStyle="ButtonRenderStyle.Success" SubmitFormOnClick="true" Text="登録" />
+            </DxFormLayoutItem>
+        </DxFormLayout>
+    </EditForm>
+
+    <p>@FormSubmitResult</p>
+
+</div>
+
+<br />
+<br />
+<br />
+<br />
+
+
+@code {
+    private Register Data { get; set; } = new Register();
+    private User user = new User();
+    private string FormSubmitResult = "";
+    IEnumerable<string> _types = new List<string> { "携帯", "職場", "自宅" };
+    IEnumerable<string> _relations = new List<string> { "父", "母", "祖父", "祖母", "その他" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        var existingUser = dbContext.Users.FirstOrDefault(p => p.Email == UserStateService.Email);
+
+        // データベースクエリは認証状態の設定後に実行
+        if (!UserStateService.IsRegister)
+        {
+            try
+            {
+                if (existingUser != null)
+                {
+                    UserStateService.IsRegister = true;
+                    UserStateService.ModelId = existingUser.UserId;
+                }
+                else
+                {
+                    UserStateService.IsRegister = false;
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"エラー発生。{ex.Message}");
+
+            }
+
+
+        }
+
+        if (existingUser != null)
+        {
+            user = existingUser;
+        }
+        else
+        {
+            user = new User();
+            user.Email = UserStateService.Email;
+            user.Name = UserStateService.Username;
+            user.AADB2CUserId = UserStateService.Id;
+            user.Role = UserStateService.Role;
+            user.PostalCode = UserStateService.PostalCode;
+            user.State = UserStateService.State;
+            user.City = UserStateService.City;
+            user.Street = UserStateService.Street;
+            dbContext.Users.Add(user);
+            await dbContext.SaveChangesAsync();
+        }
+
+        Data.Children.Add(new Children
+            {
+                Name = "",
+                ClassId = 1,
+                Rank = Data.Children.Count + 1,
+                AllergyInfo = "",
+                Birthday = DateTime.Now.AddYears(-3),
+                Notes = "",
+                CreatedAt = DateTime.Now
+            });
+
+        Data.Contacts.Add(new EmergencyContact
+            {
+                Tel = "",
+                Rank = Data.Contacts.Count + 1
+            });
+    }
+
+    private bool IsFileUploadedSuccessfully = false;
+
+    private void HandleUploadCompleted(bool isSuccess)
+    {
+        IsFileUploadedSuccessfully = isSuccess;
+
+        if (isSuccess)
+        {
+            Console.WriteLine("ファイルが正常にアップロードされました！");
+        }
+        else
+        {
+            Console.WriteLine("ファイルのアップロードに失敗しました。");
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (IsFileUploadedSuccessfully)
+        {
+            try
+            {
+                // Assign UserId to all children and contacts
+                foreach (var child in Data.Children)
+                {
+                    child.UserId = user.UserId;
+                }
+
+                foreach (var contact in Data.Contacts)
+                {
+                    contact.UserId = user.UserId;
+                }
+
+                // Save to database
+                dbContext.Childrens.AddRange(Data.Children);
+                dbContext.EmergencyContacts.AddRange(Data.Contacts);
+                await dbContext.SaveChangesAsync();
+
+                FormSubmitResult = "登録が完了しました。";
+            }
+            catch (Exception ex)
+            {
+                FormSubmitResult = $"エラーが発生しました。 {ex.Message}";
+            }
+        }
+        else
+        {
+            FormSubmitResult = $"通園経路画像をファイルをアップロードしてください。";
+
+        }
+
+    }
+
+    private void AddChild()
+    {
+        Data.Children.Add(new Children
+            {
+                Name = "",
+                Rank = Data.Children.Count + 1,
+                ClassId = 1,
+                AllergyInfo = "",
+                Birthday = DateTime.Now.AddYears(-3),
+                Notes = "",
+                CreatedAt = DateTime.Now
+            });
+    }
+
+    private void DeleteChild(Children child)
+    {
+        Data.Children.Remove(child);
+
+    }
+
+    private void AddEmergencyContact()
+    {
+        Data.Contacts.Add(new EmergencyContact
+            {
+                Tel = "",
+                Rank = Data.Contacts.Count + 1
+            });
+    }
+
+    private void DeleteEmergencyContact(EmergencyContact contact)
+    {
+        Data.Contacts.Remove(contact);
+    }
+
+    public class Register
+    {
+        public List<Children> Children { get; set; } = new List<Children>();
+        public List<EmergencyContact> Contacts { get; set; } = new List<EmergencyContact>();
+    }
+
+
+}

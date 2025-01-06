@@ -7,6 +7,7 @@
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserStateService UserStateService
 @inject ApplicationDbContext dbContext
+@inject NavigationManager NavigationManager
 
 
 <div class="sidebar @StateCssClass">
@@ -84,12 +85,27 @@
 
             var street = user.Claims.FirstOrDefault(c => c.Type == "streetAddress")?.Value ?? string.Empty;
             UserStateService.Street = street;
+
+            var existingUser = dbContext.Users.FirstOrDefault(p => p.Email == UserStateService.Email);
+
+            if (existingUser == null)
+            {
+
+            }
+            else
+            {
+                UserStateService.IsRegister = true;
+            }
+
+        }
+        else if (!UserStateService.IsRegister)
+        {
+
+            NavigationManager.NavigateTo("/register", forceLoad: true);
         }
         else
         {
-            UserStateService.Email = string.Empty;
-            UserStateService.Username = string.Empty;
-            UserStateService.Role = string.Empty;
+            
         }
 
     }

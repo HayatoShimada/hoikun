@@ -3,11 +3,10 @@ using hoikun.Services;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
+using Microsoft.Azure.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
-using Microsoft.Extensions.Azure;
-using Microsoft.Azure.SignalR;
 
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
@@ -35,6 +34,8 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddRazorPages()
     .AddMicrosoftIdentityUI();
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
 
 // SQL Server
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
