@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using hoikun.Data;
 
@@ -11,9 +12,11 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250108124952_AddLocationToAppointment3")]
+    partial class AddLocationToAppointment3
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -137,24 +140,12 @@ namespace hoikun.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.ToTable("Classes");
-                });
-
-            modelBuilder.Entity("hoikun.Data.ClassTeacher", b =>
-                {
-                    b.Property<int>("ClassId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ClassId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ClassTeachers");
                 });
 
             modelBuilder.Entity("hoikun.Data.EmergencyContact", b =>
@@ -183,7 +174,7 @@ namespace hoikun.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -208,8 +199,9 @@ namespace hoikun.Migrations
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("MessageCategoryId")
-                        .HasColumnType("int");
+                    b.Property<string>("MenssageCategoryId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int?>("PhotoId")
                         .HasColumnType("int");
@@ -222,8 +214,6 @@ namespace hoikun.Migrations
                         .HasColumnType("int");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("MessageCategoryId");
 
                     b.HasIndex("PhotoId");
 
@@ -247,54 +237,6 @@ namespace hoikun.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("MessageCategories");
-                });
-
-            modelBuilder.Entity("hoikun.Data.MessageCategoryOptions", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MessageCategoryId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("OptionKey")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MessageCategoryId");
-
-                    b.ToTable("MessageCategoryOptions");
-                });
-
-            modelBuilder.Entity("hoikun.Data.MessageOptions", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("MessageId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("OptionKey")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("OptionValue")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MessageId");
-
-                    b.ToTable("MessageOptions");
                 });
 
             modelBuilder.Entity("hoikun.Data.MessageRecipients", b =>
@@ -353,7 +295,7 @@ namespace hoikun.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Photos");
+                    b.ToTable("Photo");
                 });
 
             modelBuilder.Entity("hoikun.Data.Rout", b =>
@@ -383,7 +325,7 @@ namespace hoikun.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("Routs");
+                    b.ToTable("Rout");
                 });
 
             modelBuilder.Entity("hoikun.Data.User", b =>
@@ -453,8 +395,6 @@ namespace hoikun.Migrations
 
                     b.HasKey("UserAppointmentId");
 
-                    b.HasIndex("UserId");
-
                     b.ToTable("UserAppointments");
                 });
 
@@ -465,7 +405,7 @@ namespace hoikun.Migrations
                         .HasForeignKey("ClassId");
 
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("Appointments")
+                        .WithMany()
                         .HasForeignKey("UserId");
 
                     b.Navigation("Class");
@@ -492,93 +432,39 @@ namespace hoikun.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("hoikun.Data.ClassTeacher", b =>
-                {
-                    b.HasOne("hoikun.Data.Class", "Class")
-                        .WithMany("ClassTeachers")
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("ClassTeachers")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Class");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("hoikun.Data.EmergencyContact", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("EmergencyContacts")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .WithMany()
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });
 
             modelBuilder.Entity("hoikun.Data.Message", b =>
                 {
-                    b.HasOne("hoikun.Data.MessageCategory", "MessageCategory")
-                        .WithMany("Messages")
-                        .HasForeignKey("MessageCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("hoikun.Data.Photo", "Photo")
                         .WithMany("Message")
                         .HasForeignKey("PhotoId");
 
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("Messages")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("MessageCategory");
+                        .WithMany()
+                        .HasForeignKey("UserId");
 
                     b.Navigation("Photo");
 
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("hoikun.Data.MessageCategoryOptions", b =>
-                {
-                    b.HasOne("hoikun.Data.MessageCategory", "MessageCategory")
-                        .WithMany()
-                        .HasForeignKey("MessageCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("MessageCategory");
-                });
-
-            modelBuilder.Entity("hoikun.Data.MessageOptions", b =>
-                {
-                    b.HasOne("hoikun.Data.Message", "Message")
-                        .WithMany("MessageOptions")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Message");
-                });
-
             modelBuilder.Entity("hoikun.Data.MessageRecipients", b =>
                 {
                     b.HasOne("hoikun.Data.Message", "Message")
-                        .WithMany("MessageRecipients")
-                        .HasForeignKey("MessageId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .WithMany()
+                        .HasForeignKey("MessageId");
 
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("MessageRecipients")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .WithMany()
+                        .HasForeignKey("UserId");
 
                     b.Navigation("Message");
 
@@ -588,7 +474,7 @@ namespace hoikun.Migrations
             modelBuilder.Entity("hoikun.Data.Photo", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("Photos")
+                        .WithMany()
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
@@ -597,39 +483,15 @@ namespace hoikun.Migrations
             modelBuilder.Entity("hoikun.Data.Rout", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("Routs")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade);
+                        .WithMany()
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("hoikun.Data.UserAppointment", b =>
-                {
-                    b.HasOne("hoikun.Data.User", null)
-                        .WithMany("UserAppointments")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("hoikun.Data.Class", b =>
                 {
                     b.Navigation("Children");
-
-                    b.Navigation("ClassTeachers");
-                });
-
-            modelBuilder.Entity("hoikun.Data.Message", b =>
-                {
-                    b.Navigation("MessageOptions");
-
-                    b.Navigation("MessageRecipients");
-                });
-
-            modelBuilder.Entity("hoikun.Data.MessageCategory", b =>
-                {
-                    b.Navigation("Messages");
                 });
 
             modelBuilder.Entity("hoikun.Data.Photo", b =>
@@ -639,23 +501,7 @@ namespace hoikun.Migrations
 
             modelBuilder.Entity("hoikun.Data.User", b =>
                 {
-                    b.Navigation("Appointments");
-
                     b.Navigation("Children");
-
-                    b.Navigation("ClassTeachers");
-
-                    b.Navigation("EmergencyContacts");
-
-                    b.Navigation("MessageRecipients");
-
-                    b.Navigation("Messages");
-
-                    b.Navigation("Photos");
-
-                    b.Navigation("Routs");
-
-                    b.Navigation("UserAppointments");
                 });
 #pragma warning restore 612, 618
         }

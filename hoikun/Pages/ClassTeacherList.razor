@@ -1,0 +1,173 @@
+﻿@page "/class-teachers"
+@inject UserStateService UserStateService
+@using hoikun.Services
+
+@using hoikun.Data
+@using hoikun.Enums
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext dbContext
+@attribute [Authorize]
+
+<DxGrid @ref="Grid"
+        Data="@classTeachers"
+        ColumnResizeMode="GridColumnResizeMode.NextColumn"
+        CustomizeEditModel="NewClassTeacher"
+        DataItemDeleting="ClassTeacherDelete"
+        EditMode="GridEditMode.EditRow"
+        EditModelSaving="ClassTeacherEditSaving"
+        EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
+        TextWrapEnabled="false"
+        PageSize="20">
+
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="UserId" Caption="先生の名前" MinWidth="100">
+            <CellDisplayTemplate Context="cellContext">
+                @{
+                    var classItem = (ClassTeacher)cellContext.DataItem;
+                    var teacherNames = Teachers.Where(t => t.UserId == classItem.UserId).Select(t => t.Name);
+                }
+                @string.Join(", ", teacherNames)
+            </CellDisplayTemplate>
+
+            <CellEditTemplate>
+                @{
+                    var classTeacherItem = (ClassTeacher)context.EditModel;
+                }
+                <DxComboBox Data="@Teachers"
+                            NullText="先生を選んでください..."
+                            SearchMode="ListSearchMode.AutoSearch"
+                            SearchFilterCondition="ListSearchFilterCondition.Contains"
+                            TextFieldName="Name"
+                            ValueFieldName="UserId"
+                            @bind-Value="@classTeacherItem.UserId">
+                </DxComboBox>
+            </CellEditTemplate>
+        </DxGridDataColumn>
+
+    </Columns>
+
+</DxGrid>
+
+@code {
+    [Parameter]
+    public Class? Class { get; set; }
+
+    private IEnumerable<ClassTeacher> classTeachers { get; set; } = new List<ClassTeacher>();
+
+    private IEnumerable<User> Teachers { get; set; } = new List<User>();
+    private List<int> selectedTeacherIds = new();
+    private string ErrorMessage = string.Empty;
+
+    IGrid? Grid { get; set; } = new DxGrid();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await UpdateDataAsync();
+    }
+
+    private async Task UpdateDataAsync()
+    {
+        try
+        {
+            Teachers = dbContext.Users.Where(u => u.Role == "Teacher").AsNoTracking().ToList();
+
+            if (Class != null)
+            {
+                classTeachers = dbContext.ClassTeachers.Where(c => c.ClassId == Class.Id).ToList();
+            }
+            else
+            {
+                classTeachers = dbContext.ClassTeachers.ToList();
+            }
+
+            StateHasChanged(); // UIを更新
+        }
+        catch(Exception ex)
+        {
+
+        }
+
+    }
+
+    void NewClassTeacher(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var newClassTeacher = (ClassTeacher)e.EditModel;
+
+            if (Class != null)
+            {
+                newClassTeacher.ClassId = Class.Id;
+                newClassTeacher.UserId = 1;
+
+            }
+        }
+    }
+
+
+    async Task ClassTeacherEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var editableClassTeacher = (ClassTeacher)e.EditModel;
+
+        try
+        {
+            // データの重複をチェック
+            var existingClassTeacher = await dbContext.ClassTeachers
+                .Where(ct => ct.ClassId == editableClassTeacher.ClassId)
+                .Where(ct => ct.UserId == editableClassTeacher.UserId)
+                .FirstOrDefaultAsync();
+
+            if (e.IsNew)
+            {
+                // 既存データがない場合のみ追加
+                if (existingClassTeacher == null)
+                {
+                    dbContext.ClassTeachers.Add(editableClassTeacher);
+                    dbContext.SaveChanges();
+                    await UpdateDataAsync();
+                }
+                else
+                {
+                    // 既に同じデータが存在する場合はエラー通知
+                    Console.WriteLine("Error: The teacher is already assigned to this class.");
+                    throw new InvalidOperationException("This teacher is already assigned to the selected class.");
+                }
+            }
+            else
+            {
+                if (existingClassTeacher == null)
+                {
+                    dbContext.ClassTeachers.Add(editableClassTeacher);
+                    dbContext.SaveChanges();
+                    await UpdateDataAsync();
+                }
+                else
+                {
+                    // 既存のデータを更新 (変更がある場合)
+                    dbContext.Entry(existingClassTeacher).CurrentValues.SetValues(editableClassTeacher);
+                    dbContext.SaveChanges();
+                    await UpdateDataAsync();
+                }
+                
+            }
+        }
+        catch (InvalidOperationException ex)
+        {
+            // UI に通知するための処理（例：エラーメッセージを表示するための変数を設定）
+            ErrorMessage = ex.Message;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Unexpected error: {ex.Message}");
+        }
+    }
+
+    async Task ClassTeacherDelete(GridDataItemDeletingEventArgs e)
+    {
+        dbContext.ClassTeachers.Remove((ClassTeacher)e.DataItem);
+        await dbContext.SaveChangesAsync();
+        await UpdateDataAsync();
+    }
+
+}

@@ -1,0 +1,142 @@
+﻿@page "/message-form/{replyToMessageId:int?}"
+@inject MessageService MessageService
+@inject NavigationManager Navigation
+@inject UserStateService UserStateService
+@using Microsoft.AspNetCore.Components.Forms
+@using hoikun.Services
+
+<h3>@(ReplyToMessageId == null ? "新しいメッセージを作成" : "返信")</h3>
+
+<div class="mb-3">
+    <label class="form-label">件名</label>
+    <input class="form-control" @bind="message.Subject" />
+</div>
+
+<div class="mb-3">
+    <label class="form-label">本文</label>
+    <textarea class="form-control" rows="4" @bind="message.Body"></textarea>
+</div>
+
+@if (ReplyToMessageId == null)
+{
+    <div class="mb-3">
+        <label class="form-label">宛先</label>
+        <div>
+            @foreach (var user in availableUsers)
+            {
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input"
+                           checked="@selectedRecipients.Contains(user.UserId)"
+                           @onchange="(e) => ToggleRecipient(user.UserId, (bool)e.Value)" />
+
+
+                    <label class="form-check-label">@user.Name</label>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">メッセージカテゴリ</label>
+        <select class="form-control" @bind="message.MessageCategoryId">
+            <option value="">選択してください</option>
+            @foreach (var category in categories)
+            {
+                <option value="@category.Id">@category.Name</option>
+            }
+        </select>
+    </div>
+
+    <h4>オプション</h4>
+    <div class="mb-3">
+        @foreach (var option in availableOptions)
+        {
+            <div>
+                <label>@option.OptionKey</label>
+                <input class="form-control" @bind="messageOptions[option.OptionKey]" />
+            </div>
+        }
+    </div>
+}
+
+<h4>画像添付</h4>
+<InputFile OnChange="HandleFileUpload" />
+
+
+<button class="btn btn-primary mt-3" @onclick="SendMessage">送信</button>
+
+@code {
+    [Parameter] public int? ReplyToMessageId { get; set; }
+    private MessageDto message = new();
+    private List<MessageCategoryDto> categories = new();
+    private List<MessageCategoryOptionsDto> availableOptions = new();
+    private List<UserDto> availableUsers = new();
+    private List<int> selectedRecipients = new();
+    private Dictionary<string, string> messageOptions = new();
+    private byte[] uploadedPhoto = Array.Empty<byte>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ReplyToMessageId != null)
+        {
+            var originalMessage = await MessageService.GetMessageByIdAsync(ReplyToMessageId.Value);
+            message.Subject = "Re: " + originalMessage.Subject;
+            message.Body = "\n\n---\n" + originalMessage.Body;
+        }
+        else
+        {
+            categories = await MessageService.GetMessageCategoriesAsync();
+            availableUsers = await MessageService.GetAllUsersAsync();
+        }
+    }
+
+    private async Task HandleFileUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file != null)
+        {
+            using var ms = new MemoryStream();
+            await file.OpenReadStream().CopyToAsync(ms);
+            uploadedPhoto = ms.ToArray();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (UserStateService.ModelId == null)
+        {
+            return;
+        }
+        int senderId = (int)UserStateService.ModelId;
+        if (ReplyToMessageId != null)
+        {
+            await MessageService.SendReplyAsync(senderId, ReplyToMessageId.Value, message.Body);
+
+        }
+        else
+        {    
+            await MessageService.CreateMessageAsync(senderId, message, selectedRecipients, messageOptions, uploadedPhoto);
+
+
+        }
+        
+       
+
+        Navigation.NavigateTo("/messages");
+    }
+
+    private void ToggleRecipient(int userId, bool isChecked)
+    {
+        if (isChecked)
+        {
+            if (!selectedRecipients.Contains(userId))
+            {
+                selectedRecipients.Add(userId);
+            }
+        }
+        else
+        {
+            selectedRecipients.Remove(userId);
+        }
+    }
+}

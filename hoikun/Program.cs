@@ -43,6 +43,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 
 // AppointmentService ‚ð“o˜^
 builder.Services.AddScoped<AppointmentService>();
+// MessageService ‚ð“o˜^
+builder.Services.AddScoped<MessageService>();
+
 
 // Add services to the container.
 builder.Services.AddRazorPages();

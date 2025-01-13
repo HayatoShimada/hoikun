@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using hoikun.Data;
 
@@ -11,9 +12,11 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250108131905_FixMessageUserDeleteBehavior")]
+    partial class FixMessageUserDeleteBehavior
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -137,24 +140,12 @@ namespace hoikun.Migrations
                     b.Property<string>("Name")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int>("TeacherId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
 
                     b.ToTable("Classes");
-                });
-
-            modelBuilder.Entity("hoikun.Data.ClassTeacher", b =>
-                {
-                    b.Property<int>("ClassId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("UserId")
-                        .HasColumnType("int");
-
-                    b.HasKey("ClassId", "UserId");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("ClassTeachers");
                 });
 
             modelBuilder.Entity("hoikun.Data.EmergencyContact", b =>
@@ -183,7 +174,7 @@ namespace hoikun.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("int");
 
                     b.HasKey("Id");
@@ -492,32 +483,12 @@ namespace hoikun.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("hoikun.Data.ClassTeacher", b =>
-                {
-                    b.HasOne("hoikun.Data.Class", "Class")
-                        .WithMany("ClassTeachers")
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("ClassTeachers")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Class");
-
-                    b.Navigation("User");
-                });
-
             modelBuilder.Entity("hoikun.Data.EmergencyContact", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
-                        .WithMany("EmergencyContacts")
+                        .WithMany()
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
                 });
@@ -578,7 +549,7 @@ namespace hoikun.Migrations
                     b.HasOne("hoikun.Data.User", "User")
                         .WithMany("MessageRecipients")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.NoAction);
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("Message");
 
@@ -616,8 +587,6 @@ namespace hoikun.Migrations
             modelBuilder.Entity("hoikun.Data.Class", b =>
                 {
                     b.Navigation("Children");
-
-                    b.Navigation("ClassTeachers");
                 });
 
             modelBuilder.Entity("hoikun.Data.Message", b =>
@@ -642,10 +611,6 @@ namespace hoikun.Migrations
                     b.Navigation("Appointments");
 
                     b.Navigation("Children");
-
-                    b.Navigation("ClassTeachers");
-
-                    b.Navigation("EmergencyContacts");
 
                     b.Navigation("MessageRecipients");
 

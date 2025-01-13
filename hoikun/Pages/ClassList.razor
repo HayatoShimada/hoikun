@@ -1,0 +1,140 @@
+﻿@page "/classes"
+@inject UserStateService UserStateService
+@using hoikun.Services
+
+@using hoikun.Data
+@using hoikun.Enums
+@using Microsoft.EntityFrameworkCore
+@inject ApplicationDbContext dbContext
+@attribute [Authorize]
+
+<div class="grid-container">
+    <DxGrid @ref="Grid"
+            Data="@classes"
+            ColumnResizeMode="GridColumnResizeMode.NextColumn"
+            CustomizeEditModel="NewClass"
+            DataItemDeleting="ClassDelete"
+            EditMode="GridEditMode.EditRow"
+            EditModelSaving="ClassEditSaving"
+            EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
+            TextWrapEnabled="false"
+            PageSize="20">
+
+        <Columns>
+            <DxGridCommandColumn Width="160px" />
+            <DxGridDataColumn FieldName="Name" MinWidth="100" />
+        </Columns>
+        <DetailRowTemplate>
+            <ClassTeacherList Class="@((Class)context.DataItem)" />
+            <ChildrenList Class="@((Class)context.DataItem)" />
+        </DetailRowTemplate>
+    </DxGrid>
+</div>
+
+@code {
+    private List<Class> classes = new();
+
+    private IEnumerable<User> Teachers { get; set; } = new List<User>();
+    private List<int> selectedTeacherIds = new();
+    private string ErrorMessage = string.Empty;
+
+    IGrid Grid { get; set; }
+    IGrid Grid1 { get; set; }
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        classes = await dbContext.Classes
+            .Include(c => c.ClassTeachers)
+            .ThenInclude(ct => ct.User)
+            .ToListAsync();
+
+
+        Teachers = await dbContext.Users.Where(u => u.Role == "Teacher").ToListAsync();
+
+        foreach (var classItem in classes)
+        {
+            classItem.SelectedTeacherIds = classItem.ClassTeachers.Select(ct => ct.UserId).ToList();
+        }
+    }
+
+    private async Task UpdateDataAsync()
+    {
+        classes = await dbContext.Classes
+            .Include(c => c.ClassTeachers)
+            .ThenInclude(ct => ct.User)
+            .ToListAsync();
+
+        StateHasChanged(); // UIを更新
+    }
+
+    IEnumerable<User> GetListBoxValues(IDropDownBox dropDownBox)
+    {
+        return dropDownBox.Value as IEnumerable<User>;
+    }
+
+    void NewClass(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var newClass = (Class)e.EditModel;
+            newClass.Name = "未設定";
+            newClass.SelectedTeacherIds = new List<int>(); // 初期化
+        }
+    }
+
+    async Task ClassEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var editableClass = (Class)e.EditModel;
+
+        try
+        {
+            if (e.IsNew)
+            {
+                editableClass.ClassTeachers.Clear();
+                foreach (var userId in editableClass.SelectedTeacherIds)
+                {
+                    editableClass.ClassTeachers.Add(new ClassTeacher { ClassId = editableClass.Id, UserId = userId });
+                }
+
+                dbContext.Classes.Add(editableClass);
+            }
+            else
+            {
+                var existingClass = await dbContext.Classes
+                    .Include(c => c.ClassTeachers)
+                    .FirstOrDefaultAsync(c => c.Id == editableClass.Id);
+
+                if (existingClass != null)
+                {
+                    dbContext.ClassTeachers.RemoveRange(existingClass.ClassTeachers);
+
+                    existingClass.ClassTeachers.Clear();
+                    foreach (var userId in editableClass.SelectedTeacherIds)
+                    {
+                        existingClass.ClassTeachers.Add(new ClassTeacher { ClassId = existingClass.Id, UserId = userId });
+                    }
+
+                    dbContext.Entry(existingClass).CurrentValues.SetValues(editableClass);
+                }
+
+            }
+
+            await dbContext.SaveChangesAsync();
+            await UpdateDataAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    async Task ClassDelete(GridDataItemDeletingEventArgs e)
+    {
+        dbContext.Classes.Remove((Class)e.DataItem);
+        await dbContext.SaveChangesAsync();
+        await UpdateDataAsync();
+    }
+
+}
+

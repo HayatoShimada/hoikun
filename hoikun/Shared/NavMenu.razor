@@ -14,6 +14,8 @@
     <DxTreeView AllowSelectNodes="true" CssClass="app-sidebar">
         <Nodes>
             <DxTreeViewNode NavigateUrl="/" Text="Home" />
+            <DxTreeViewNode NavigateUrl="/classes" Text="クラス情報" />
+
             <DxTreeViewNode Text="スケジュール">
                 <Nodes>
                     <DxTreeViewNode NavigateUrl="/schedule?view=0" Text="月間日程" />
@@ -38,6 +40,8 @@
                 <Nodes>
                     @if(UserStateService.IsLoggedIn)
                     {
+                        <DxTreeViewNode NavigateUrl="/register" Text="ユーザー登録" />
+
                         <DxTreeViewNode NavigateUrl="MicrosoftIdentity/Account/SignOut" Text="ログアウト" />
                     }
                     else
@@ -46,8 +50,16 @@
                     }
                 </Nodes>
             </DxTreeViewNode>
+
+            <DxTreeViewNode Text="メッセージ">
+                <Nodes>
+                    <DxTreeViewNode NavigateUrl="/messages" Text="メッセージリスト" />
+
+                </Nodes>
+            </DxTreeViewNode>
         </Nodes>
     </DxTreeView>
+
 </div>
 
 @code {
@@ -94,7 +106,9 @@
             }
             else
             {
+                var userRegister = await dbContext.Users.Where(t => t.Email == UserStateService.Email).FirstOrDefaultAsync();
                 UserStateService.IsRegister = true;
+                UserStateService.ModelId = userRegister.UserId;
             }
 
         }

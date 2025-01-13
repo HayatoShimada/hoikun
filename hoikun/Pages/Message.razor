@@ -1,0 +1,78 @@
+﻿@page "/messages"
+@inject MessageService MessageService
+@inject NavigationManager Navigation
+@inject UserStateService UserStateService
+@using hoikun.Services
+
+<h3>メッセージ一覧</h3>
+
+<!-- 新規メッセージ作成ボタン -->
+<button class="btn btn-success mb-3" @onclick="CreateNewMessage">新規メッセージ作成</button>
+
+@if (messages == null)
+{
+    <p>メッセージを取得中...</p>
+}
+else if (!messages.Any())
+{
+    <p>メッセージはありません。</p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>送信者</th>
+                <th>件名</th>
+                <th>日時</th>
+                <th>既読</th>
+                <th>返信</th>
+
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var message in messages)
+            {
+                <tr class="@(message.IsRead ? "" : "table-warning")">
+                    <td>@message.SenderName</td>
+                    <td>
+                        <a href="message-detail/@message.Id">@message.Subject</a>
+                    </td>
+                    <td>@message.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                    <td>@(message.IsRead ? "✔" : "未読")</td>
+                    <td>
+                        <button class="btn btn-sm btn-primary" @onclick="() => ReplyToMessage(message.Id)">返信</button>
+                    </td>
+
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<MessageDto> messages;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserStateService.ModelId == null)
+        {
+            return;
+        }
+        else
+        {
+            messages = await MessageService.GetReceivedMessagesAsync((int)UserStateService.ModelId);
+
+        }
+    }
+
+    private void ReplyToMessage(int messageId)
+    {
+        Navigation.NavigateTo($"/message-form/{messageId}");
+    }
+
+    private void CreateNewMessage()
+    {
+        Navigation.NavigateTo("/message-form"); // 新規メッセージ作成ページへ遷移
+    }
+}
