@@ -1,57 +1,58 @@
 ﻿@page "/children"
-@inject UserStateService UserStateService
 @using hoikun.Services
-
 @using hoikun.Data
 @using hoikun.Enums
 @using Microsoft.EntityFrameworkCore
-@inject ApplicationDbContext dbContextChildren
+
+@inject UserStateService UserStateService
+@inject ApplicationDbContext dbContext
+@inject IDbContextService dbContextService
 @attribute [Authorize]
 
-<div class="grid-container">
-    <DxGrid @ref="Grid"
-            Data="@children"
-            ColumnResizeMode="GridColumnResizeMode.NextColumn"
-            CustomizeEditModel="Grid_CustomizeEditModel"
-            DataItemDeleting="Grid_DataItemDeleting"
-            EditMode="GridEditMode.EditRow"
-            EditModelSaving="Grid_EditModelSaving"
-            EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
-            TextWrapEnabled="false"
-            PageSize="20">
 
-        <Columns>
-            <DxGridCommandColumn Width="160px" />
-            <DxGridDataColumn FieldName="Name" MinWidth="100" />
-            <DxGridDataColumn FieldName="Class.Name" MinWidth="100" >
-                <CellEditTemplate>
-                    @{
-                        var childItem = (Children)context.EditModel;
-                    }
-                    <DxComboBox Data="@classes"
-                                NullText="クラスを選んでください..."
-                                SearchMode="ListSearchMode.AutoSearch"
-                                SearchFilterCondition="ListSearchFilterCondition.Contains"
-                                TextFieldName="Name"
-                                ValueFieldName="Id"
-                                @bind-Value="@childItem.ClassId">
-                    </DxComboBox>
-                </CellEditTemplate>
+<DxGrid @ref="Grid"
+        Data="@children"
+        ColumnResizeMode="GridColumnResizeMode.NextColumn"
+        CustomizeEditModel="Grid_CustomizeEditModel"
+        DataItemDeleting="Grid_DataItemDeleting"
+        EditMode="GridEditMode.EditRow"
+        EditModelSaving="Grid_EditModelSaving"
+        EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
+        TextWrapEnabled="false"
+        PageSize="20">
+
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="Name" MinWidth="100" />
+        <DxGridDataColumn FieldName="Class.Name" MinWidth="100">
+            <CellEditTemplate>
+                @{
+                    var childItem = (Children)context.EditModel;
+                }
+                <DxComboBox Data="@classes"
+                            NullText="クラスを選んでください..."
+                            SearchMode="ListSearchMode.AutoSearch"
+                            SearchFilterCondition="ListSearchFilterCondition.Contains"
+                            TextFieldName="Name"
+                            ValueFieldName="Id"
+                            @bind-Value="@childItem.ClassId">
+                </DxComboBox>
+            </CellEditTemplate>
 
 
-            </DxGridDataColumn>
+        </DxGridDataColumn>
 
-            <DxGridDataColumn FieldName="UserId" MinWidth="100" />
-            <DxGridDataColumn FieldName="Birthday" Width="15%" />
-            <DxGridDataColumn FieldName="AllergyInfo" Width="15%" />
-            <DxGridDataColumn FieldName="Notes" Width="15%" />
-        </Columns>
-    </DxGrid>
-</div>
+        <DxGridDataColumn FieldName="UserId" MinWidth="100" />
+        <DxGridDataColumn FieldName="Birthday" Width="15%" />
+        <DxGridDataColumn FieldName="AllergyInfo" Width="15%" />
+        <DxGridDataColumn FieldName="Notes" Width="15%" />
+    </Columns>
+</DxGrid>
+
 
 @code {
     [Parameter]
-    public Class? Class { get; set; }
+    public Class? SelectedClass { get; set; }
 
     private List<Class> classes = new();
 
@@ -60,26 +61,20 @@
 
     protected override async Task OnInitializedAsync()
     {
-        classes = await dbContextChildren.Classes.ToListAsync();
-        if (Class != null)
-        {
-            children = await dbContextChildren.Childrens.Where(c => c.ClassId == Class.Id).ToListAsync();
-        }
-        else
-        {
-            children = await dbContextChildren.Childrens.ToListAsync();
-        }
+        classes = await dbContextService.GetClassesAsync(query => query);
+        await UpdateDataAsync();
     }
 
     private async Task UpdateDataAsync()
     {
-        if (Class != null)
+        if (SelectedClass != null)
         {
-            children = await dbContextChildren.Childrens.Where(c => c.ClassId == Class.Id).ToListAsync();
+            children = await dbContextService.GetChildrensAsync(query => query.Where(c => c.Id == SelectedClass.Id));
         }
         else
         {
-            children = await dbContextChildren.Childrens.ToListAsync();
+            children = await dbContextService.GetChildrensAsync(query => query);
+
         }
         StateHasChanged(); // UIを更新
     }
@@ -90,7 +85,7 @@
         {
             var newChild = (Children)e.EditModel;
             newChild.Name = "未設定";
-            newChild.ClassId = Class?.Id ?? 1;
+            newChild.ClassId = SelectedClass?.Id ?? 1;
 
         }
     }
@@ -103,37 +98,29 @@
         {
             if (e.IsNew)
             {
-                dbContextChildren.Childrens.Add(editableChild);
+                await dbContextService.AddChildrenAsync(editableChild);
             }
             else
             {
-                var existingChild = await dbContextChildren.Childrens.FindAsync(editableChild.Id);
-                if (existingChild != null)
-                {
-                    dbContextChildren.Entry(existingChild).CurrentValues.SetValues(editableChild);
-                }
-                else
-                {
-                    dbContextChildren.Childrens.Attach(editableChild);
-                    dbContextChildren.Entry(editableChild).State = EntityState.Modified;
-                }
+                await dbContextService.UpdateChildrenAsync(editableChild.Id, editableChild);
             }
-
-            await dbContextChildren.SaveChangesAsync();
-            await UpdateDataAsync();
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
-    
     }
+
 
     async Task Grid_DataItemDeleting(GridDataItemDeletingEventArgs e)
     {
-        dbContextChildren.Childrens.Remove((Children)e.DataItem);
-        await dbContextChildren.SaveChangesAsync();
-        await UpdateDataAsync();
+        try
+        {
+            await dbContextService.DeleteChildrenAsync(((Children)e.DataItem).Id);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
     }
-
 }

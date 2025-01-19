@@ -219,7 +219,7 @@ namespace hoikun.Data
 
         public DateTime? UpdatedAt { get; set; }
 
-        public virtual User User { get; set; }
+        public virtual User User { get; set; } = new User();
     }
 
     public partial class Rout

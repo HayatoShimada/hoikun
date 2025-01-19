@@ -45,6 +45,8 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<AppointmentService>();
 // MessageService ‚ð“o˜^
 builder.Services.AddScoped<MessageService>();
+// ClassService ‚ð“o˜^
+builder.Services.AddScoped<IDbContextService, DbContextService>();
 
 
 // Add services to the container.

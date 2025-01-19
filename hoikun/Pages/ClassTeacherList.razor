@@ -2,10 +2,12 @@
 @inject UserStateService UserStateService
 @using hoikun.Services
 
+
 @using hoikun.Data
 @using hoikun.Enums
 @using Microsoft.EntityFrameworkCore
 @inject ApplicationDbContext dbContext
+@inject IDbContextService dbContextService
 @attribute [Authorize]
 
 <DxGrid @ref="Grid"
@@ -74,17 +76,19 @@
 
             if (Class != null)
             {
-                classTeachers = dbContext.ClassTeachers.Where(c => c.ClassId == Class.Id).ToList();
+                classTeachers = await dbContextService.GetClassTeachersAsync(Class.Id);
             }
             else
             {
-                classTeachers = dbContext.ClassTeachers.ToList();
+                classTeachers = await dbContextService.GetClassTeachersAsync(null);
+
             }
 
             StateHasChanged(); // UIを更新
         }
         catch(Exception ex)
         {
+            Console.WriteLine(ex.Message);
 
         }
 
@@ -105,7 +109,6 @@
         }
     }
 
-
     async Task ClassTeacherEditSaving(GridEditModelSavingEventArgs e)
     {
         var editableClassTeacher = (ClassTeacher)e.EditModel;
@@ -113,18 +116,14 @@
         try
         {
             // データの重複をチェック
-            var existingClassTeacher = await dbContext.ClassTeachers
-                .Where(ct => ct.ClassId == editableClassTeacher.ClassId)
-                .Where(ct => ct.UserId == editableClassTeacher.UserId)
-                .FirstOrDefaultAsync();
+            var existingClassTeacher = await dbContextService.GetClassTeacherAsync(editableClassTeacher.ClassId, editableClassTeacher.UserId);
 
             if (e.IsNew)
             {
                 // 既存データがない場合のみ追加
                 if (existingClassTeacher == null)
                 {
-                    dbContext.ClassTeachers.Add(editableClassTeacher);
-                    dbContext.SaveChanges();
+                    await dbContextService.AddClassTeacherAsync(editableClassTeacher);
                     await UpdateDataAsync();
                 }
                 else
@@ -138,15 +137,12 @@
             {
                 if (existingClassTeacher == null)
                 {
-                    dbContext.ClassTeachers.Add(editableClassTeacher);
-                    dbContext.SaveChanges();
+                    await dbContextService.AddClassTeacherAsync(editableClassTeacher);
                     await UpdateDataAsync();
                 }
                 else
                 {
-                    // 既存のデータを更新 (変更がある場合)
-                    dbContext.Entry(existingClassTeacher).CurrentValues.SetValues(editableClassTeacher);
-                    dbContext.SaveChanges();
+                    await dbContextService.UpdateClassTeacherAsync(editableClassTeacher);
                     await UpdateDataAsync();
                 }
                 
@@ -165,8 +161,8 @@
 
     async Task ClassTeacherDelete(GridDataItemDeletingEventArgs e)
     {
-        dbContext.ClassTeachers.Remove((ClassTeacher)e.DataItem);
-        await dbContext.SaveChangesAsync();
+        var classTeacher = (ClassTeacher)e.DataItem;
+        await dbContextService.DeleteClassTeacherAsync(classTeacher);
         await UpdateDataAsync();
     }
 

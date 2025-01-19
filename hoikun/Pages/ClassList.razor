@@ -25,8 +25,14 @@
             <DxGridDataColumn FieldName="Name" MinWidth="100" />
         </Columns>
         <DetailRowTemplate>
-            <ClassTeacherList Class="@((Class)context.DataItem)" />
-            <ChildrenList Class="@((Class)context.DataItem)" />
+            <div>
+                <ClassTeacherList Class="@((Class)context.DataItem)" />
+
+            </div>
+@*             <div>
+                <ChildrenList SelectedClass="@((Class)context.DataItem)" />
+
+            </div> *@
         </DetailRowTemplate>
     </DxGrid>
 </div>
@@ -38,8 +44,8 @@
     private List<int> selectedTeacherIds = new();
     private string ErrorMessage = string.Empty;
 
-    IGrid Grid { get; set; }
-    IGrid Grid1 { get; set; }
+    IGrid Grid { get; set; } = new DxGrid();
+    IGrid Grid1 { get; set; } = new DxGrid();
 
 
     protected override async Task OnInitializedAsync()
