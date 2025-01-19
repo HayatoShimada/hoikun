@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 
 namespace hoikun.Data
 {
@@ -22,6 +23,11 @@ namespace hoikun.Data
         public DbSet<MessageCategoryOptions> MessageCategoryOptions { get; set; }
 
         public DbSet<ClassTeacher> ClassTeachers { get; set; }
+
+        public DbSet<Form> Forms { get; set; }
+        public DbSet<FormField> FormFields { get; set; }
+        public DbSet<FormSubmission> FormSubmissions { get; set; }
+        public DbSet<FormSubmissionField> FormSubmissionFields { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -87,6 +93,30 @@ namespace hoikun.Data
             // ClassTeacher の複合キー設定
             modelBuilder.Entity<ClassTeacher>()
                 .HasKey(ct => new { ct.ClassId, ct.UserId });
+
+            // FormField の OptionsJson プロパティをJSON形式として扱う
+            modelBuilder.Entity<FormField>()
+                .Property(f => f.OptionsJson)
+                .HasColumnType("json");
+
+            // 既存のリレーションシップ設定
+            modelBuilder.Entity<Form>()
+                .HasMany(f => f.FormFields)
+                .WithOne(ff => ff.Form)
+                .HasForeignKey(ff => ff.FormId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FormSubmission>()
+                .HasMany(fs => fs.FormSubmissionFields)
+                .WithOne(fsf => fsf.FormSubmission)
+                .HasForeignKey(fsf => fsf.SubmissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<FormSubmissionField>()
+                .HasOne(fsf => fsf.FormField)
+                .WithMany()
+                .HasForeignKey(fsf => fsf.FieldId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
 
     }
@@ -338,6 +368,60 @@ namespace hoikun.Data
         public virtual MessageCategory MessageCategory { get; set; } = null!;
     }
 
+    public class Form
+    {
+        public int Id { get; set; } // フォームのユニークID
+        public string Name { get; set; } = string.Empty; // フォーム名
+        public string? Description { get; set; } // フォーム説明
+        public DateTime CreatedAt { get; set; } // 作成日時
 
+        public virtual ICollection<FormField> FormFields { get; set; } = new List<FormField>();
+    }
+
+    public class FormField
+    {
+        public int Id { get; set; }
+        public int FormId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string FieldType { get; set; } = "text"; // 入力タイプ (text, number, date, select, etc.)
+        public bool IsRequired { get; set; }
+        public int Order { get; set; }
+
+        // JSON形式で保存されるオプション
+        public string? OptionsJson { get; set; }
+
+        // JSONを操作するプロパティ
+        [NotMapped]
+        public List<string>? Options
+        {
+            get => OptionsJson == null ? null : JsonSerializer.Deserialize<List<string>>(OptionsJson);
+            set => OptionsJson = value == null ? null : JsonSerializer.Serialize(value);
+        }
+
+        public virtual Form Form { get; set; } = null!;
+    }
+
+
+    public class FormSubmission
+    {
+        public int Id { get; set; } // 提出データのユニークID
+        public int FormId { get; set; } // 提出元のフォームID (FK)
+        public DateTime SubmittedAt { get; set; } // 提出日時
+
+        public virtual Form Form { get; set; } = null!;
+        public virtual ICollection<FormSubmissionField> FormSubmissionFields { get; set; } = new List<FormSubmissionField>();
+    }
+
+    public class FormSubmissionField
+    {
+        public int Id { get; set; } // ユニークID
+        public int SubmissionId { get; set; } // 提出データID (FK)
+        public int FieldId { get; set; } // フィールドID (FK)
+        public string Value { get; set; } = string.Empty; // 入力された値
+
+        public virtual FormSubmission FormSubmission { get; set; } = null!;
+        public virtual FormField FormField { get; set; } = null!;
+    }
 
 }

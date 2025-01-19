@@ -1,4 +1,5 @@
 ﻿using hoikun.Data;
+using static hoikun.Pages.FormCreate;
 
 public interface IDbContextService
 {
@@ -26,4 +27,7 @@ public interface IDbContextService
 
     // Children の削除
     Task DeleteChildrenAsync(int childrenId);
+
+    Task CreateFormAsync(FormModel form, List<FormFieldModel> fields);
+
 }

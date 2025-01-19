@@ -1,6 +1,7 @@
 ﻿using hoikun.Data;
 using Microsoft.EntityFrameworkCore;
 using System.Data;
+using static hoikun.Pages.FormCreate;
 
 public class DbContextService : IDbContextService
 {
@@ -166,4 +167,28 @@ public class DbContextService : IDbContextService
         _dbContext.Childrens.Remove(childrenEntity);
         await _dbContext.SaveChangesAsync();
     }
+
+    // Form の新規追加
+    public async Task CreateFormAsync(FormModel form, List<FormFieldModel> fields)
+    {
+        Form newForm = new()
+        {
+            Name = form.Name,
+            Description = form.Description,
+            CreatedAt = DateTime.UtcNow,
+            FormFields = fields.Select(field => new FormField
+            {
+                Name = field.Name,
+                Label = field.Label,
+                FieldType = field.FieldType,
+                IsRequired = field.IsRequired,
+                OptionsJson = field.Options // JSONとして保存
+            }).ToList()
+        };
+
+        _dbContext.Forms.Add(newForm);
+        await _dbContext.SaveChangesAsync();
+    }
+
+
 }

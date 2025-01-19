@@ -1,0 +1,125 @@
+﻿@page "/form-builder"
+@inject IDbContextService FormService
+@inject NavigationManager NavigationManager
+
+<h3>フォーム作成</h3>
+
+<EditForm Model="formModel" OnValidSubmit="SaveForm">
+    <div>
+        <label>フォーム名</label>
+        <InputText @bind-Value="formModel.Name" class="form-control" />
+    </div>
+    <div>
+        <label>説明</label>
+        <InputTextArea @bind-Value="formModel.Description" class="form-control" />
+    </div>
+    <h4>フィールド</h4>
+    <div>
+        <button type="button" @onclick="AddField">フィールドを追加</button>
+    </div>
+    @foreach (var field in formFields)
+    {
+        <div class="field-editor">
+            <label>フィールド名</label>
+            <InputText @bind-Value="field.Name" class="form-control" />
+            <label>ラベル</label>
+            <InputText @bind-Value="field.Label" class="form-control" />
+            <label>タイプ</label>
+            <InputSelect @bind-Value="field.FieldType" class="form-control">
+                <option value="text">Text</option>
+                <option value="number">Number</option>
+                <option value="date">Date</option>
+                <option value="select">Single Select</option>
+            </InputSelect>
+            @if (field.FieldType == "select")
+            {
+                <label>オプション (カンマ区切りで入力)</label>
+                <InputText @bind-Value="field.Options" class="form-control" />
+            }
+            <label>必須</label>
+            <InputCheckbox @bind-Value="field.IsRequired" />
+            <button type="button" @onclick="@(() => RemoveField(field))">削除</button>
+        </div>
+    }
+
+    <button type="submit" class="btn btn-primary">保存</button>
+</EditForm>
+
+<h4>プレビュー</h4>
+<div>
+    @foreach (var field in formFields)
+    {
+        <div>
+            <label>@field.Label</label>
+            @if (field.FieldType == "text")
+            {
+                <input type="text" class="form-control" />
+            }
+            else if (field.FieldType == "number")
+            {
+                <input type="number" class="form-control" />
+            }
+            else if (field.FieldType == "date")
+            {
+                <input type="date" class="form-control" />
+            }
+            else if (field.FieldType == "select")
+            {
+                <select class="form-control">
+                    @foreach (var option in field.Options?.Split(',') ?? Array.Empty<string>())
+                    {
+                        <option>@option</option>
+                    }
+                </select>
+            }
+        </div>
+    }
+</div>
+
+
+
+@code {
+    private FormModel formModel = new FormModel();
+    private List<FormFieldModel> formFields = new();
+    private string optionsString = "";
+
+    private void AddField()
+    {
+        formFields.Add(new FormFieldModel
+            {
+                Name = $"Field{formFields.Count + 1}",
+                Label = $"フィールド {formFields.Count + 1}",
+                FieldType = "text",
+                IsRequired = false
+            });
+    }
+
+    private void RemoveField(FormFieldModel field)
+    {
+        formFields.Remove(field);
+    }
+
+    private async Task SaveForm()
+    {
+        // サーバーに送信
+        await FormService.CreateFormAsync(formModel, formFields);
+        NavigationManager.NavigateTo("/forms"); // フォーム一覧ページにリダイレクト
+    }
+
+    // モデルクラス
+    public class FormModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string? Description { get; set; }
+    }
+
+    public class FormFieldModel
+    {
+        public string Name { get; set; } = string.Empty;
+        public string Label { get; set; } = string.Empty;
+        public string FieldType { get; set; } = "text";
+        public bool IsRequired { get; set; }
+        public string? Options { get; set; } // カンマ区切りのオプション文字列
+    }
+
+}
