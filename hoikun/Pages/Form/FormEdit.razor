@@ -1,0 +1,140 @@
+﻿@page "/edit-form/{formId:int}"
+@inject IDbContextService FormService
+@inject NavigationManager NavigationManager
+@using System.Text.Json
+
+
+<EditForm Model="formModel" OnValidSubmit="SaveForm" Context="editFormContext">
+    <DataAnnotationsValidator />
+
+    <DxFormLayout CssClass="pb-4">
+        <DxFormLayoutGroup Caption="フォーム設定">
+            <DxFormLayoutItem Caption="フォーム名" ColSpanMd="12" Context="formItemContext">
+                <DxTextBox @bind-Text="formModel.Name" />
+            </DxFormLayoutItem>
+            <DxFormLayoutItem Caption="説明" ColSpanMd="12" Context="formItemContext">
+                <DxHtmlEditor Height="500px" @bind-Markup="formModel.Description" />
+            </DxFormLayoutItem>
+        </DxFormLayoutGroup>
+
+        @foreach (var field in formFields)
+        {
+            <DxFormLayoutGroup Caption="@($"質問設定 {field.Id}")">
+                <DxFormLayoutItem Caption="質問名" ColSpanMd="12" Context="formItemContext">
+                    <DxTextBox @bind-Text="field.Name" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="ラベル" ColSpanMd="12" Context="formItemContext">
+                    <DxTextBox @bind-Text="field.Label" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="質問の説明" ColSpanMd="12" Context="formItemContext">
+                    <DxMemo @bind-Text="field.Caption" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="必須" ColSpanMd="12" Context="formItemContext">
+                    <InputCheckbox @bind-Value="field.IsRequired" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="質問形式" ColSpanMd="12" Context="formItemContext">
+                    <DxComboBox Data="@FieldTypes" @bind-Value="field.FieldType" InputId="cbOccupation" />
+                </DxFormLayoutItem>
+
+                @if (field.FieldType == "選択形式")
+                {
+                    <DxFormLayoutGroup Caption="オプション設定">
+                        @foreach (var option in field.OptionList)
+                        {
+                            <DxFormLayoutItem Caption="@($"オプション {option.Id}")" ColSpanMd="10" Context="formItemContext">
+                                <DxTextBox @bind-Text="option.Option" />
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem ColSpanMd="2" Context="formItemContext">
+                                <DxButton Click="@(() => RemoveOption(field, option))">削除</DxButton>
+                            </DxFormLayoutItem>
+                        }
+                        <DxFormLayoutItem ColSpanMd="12" Context="formItemContext">
+                            <DxButton Click="@(() => AddOption(field))">オプションを追加</DxButton>
+                        </DxFormLayoutItem>
+                    </DxFormLayoutGroup>
+                }
+
+                <DxFormLayoutItem Caption="質問を削除" ColSpanMd="12" Context="formItemContext">
+                    <DxButton Click="@(() => RemoveField(field))">削除</DxButton>
+                </DxFormLayoutItem>
+            </DxFormLayoutGroup>
+        }
+
+        <DxFormLayoutItem ColSpanMd="12" Context="formItemContext">
+            <DxButton CssClass="w-100" RenderStyle="ButtonRenderStyle.Primary" RenderStyleMode="ButtonRenderStyleMode.Outline"
+                      Text="保存" SubmitFormOnClick="true" />
+        </DxFormLayoutItem>
+    </DxFormLayout>
+</EditForm>
+
+@code {
+    [Parameter] public int formId { get; set; }
+
+    private FormModel formModel = new FormModel();
+    private List<FormFieldModel> formFields = new();
+    private IEnumerable<string> FieldTypes = new List<string> { "テキスト", "数値", "日付", "選択形式" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        // フォームデータの読み込み
+        var form = await FormService.GetFormByIdAsync(formId);
+        if (form != null)
+        {
+            formModel = new FormModel
+                {
+                    Name = form.Name,
+                    Description = form.Description
+                };
+
+            formFields = form.FormFields.Select(f => new FormFieldModel
+                {
+                    Id = f.Id,
+                    Name = f.Name,
+                    Label = f.Label,
+                    Caption = f.Caption,
+                    FieldType = f.FieldType,
+                    IsRequired = f.IsRequired,
+                    OptionList = string.IsNullOrEmpty(f.OptionsJson)
+                        ? new List<FormFieldOption>()
+                        : JsonSerializer.Deserialize<List<FormFieldOption>>(f.OptionsJson)
+                }).ToList();
+        }
+    }
+
+    private async Task SaveForm()
+    {
+        // フォームの更新処理
+        try
+        {
+            await FormService.UpdateFormAsync(formId, formModel, formFields);
+            NavigationManager.NavigateTo("/form-list");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
+    }
+
+    private void AddOption(FormFieldModel field)
+    {
+        field.OptionList.Add(new FormFieldOption
+            {
+                Id = field.OptionList.Count + 1,
+                Option = $"オプション {field.OptionList.Count + 1}"
+            });
+    }
+
+    private void RemoveOption(FormFieldModel field, FormFieldOption option)
+    {
+        field.OptionList.Remove(option);
+    }
+
+    private void RemoveField(FormFieldModel field)
+    {
+        formFields.Remove(field);
+    }
+}

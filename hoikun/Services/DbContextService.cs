@@ -1,7 +1,9 @@
 ﻿using hoikun.Data;
+using hoikun.Models;
+
 using Microsoft.EntityFrameworkCore;
 using System.Data;
-using static hoikun.Pages.FormCreate;
+using System.Text.Json;
 
 public class DbContextService : IDbContextService
 {
@@ -57,7 +59,6 @@ public class DbContextService : IDbContextService
     // 特定条件　var filteredClasses = await GetClassesAsync(query => query.Where(c => c.IsActive));
     // 並び替え　var sortedClasses = await GetClassesAsync(query => query.OrderBy(c => c.Name));
     // 複数条件　var filteredAndSortedClasses = await GetClassesAsync(query => query.Where(c => c.IsActive).OrderBy(c => c.Name));
-
     public async Task<List<Class>> GetClassesAsync(Func<IQueryable<Class>, IQueryable<Class>> queryModifier)
     {
         try
@@ -76,9 +77,7 @@ public class DbContextService : IDbContextService
     public async Task UpdateClassAsync(int classId, Action<Class> updateAction)
     {
         // 更新対象のクラスを取得
-        Class? classEntity = await _dbContext.Classes.FindAsync(classId);
-        if (classEntity == null)
-            throw new KeyNotFoundException($"Class with ID {classId} not found.");
+        Class? classEntity = await _dbContext.Classes.FindAsync(classId) ?? throw new KeyNotFoundException($"Class with ID {classId} not found.");
 
         // 動的な更新処理を適用
         updateAction(classEntity);
@@ -90,8 +89,7 @@ public class DbContextService : IDbContextService
     // Class の新規追加
     public async Task AddClassAsync(Class classEntity)
     {
-        if (classEntity == null)
-            throw new ArgumentNullException(nameof(classEntity));
+        ArgumentNullException.ThrowIfNull(classEntity);
 
         // クラスをデータベースに追加
         _dbContext.Classes.Add(classEntity);
@@ -101,10 +99,7 @@ public class DbContextService : IDbContextService
     // Class の削除
     public async Task DeleteClassAsync(int classId)
     {
-        Class? classEntity = await _dbContext.Classes.FindAsync(classId);
-        if (classEntity == null)
-            throw new KeyNotFoundException($"Class with ID {classId} not found.");
-
+        Class? classEntity = await _dbContext.Classes.FindAsync(classId) ?? throw new KeyNotFoundException($"Class with ID {classId} not found.");
         _dbContext.Classes.Remove(classEntity);
         await _dbContext.SaveChangesAsync();
     }
@@ -126,7 +121,7 @@ public class DbContextService : IDbContextService
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
-            return null;
+            return new List<Children>();
         }
 
     }
@@ -134,9 +129,7 @@ public class DbContextService : IDbContextService
     // Children の更新
     public async Task UpdateChildrenAsync(int childrenId, Children updatedChild)
     {
-        Children? childrenEntity = await _dbContext.Childrens.FindAsync(childrenId);
-        if (childrenEntity == null)
-            throw new KeyNotFoundException($"Children with ID {childrenId} not found.");
+        Children? childrenEntity = await _dbContext.Childrens.FindAsync(childrenId) ?? throw new KeyNotFoundException($"Children with ID {childrenId} not found.");
 
         // 既存エンティティに新しい値を適用
         _dbContext.Entry(childrenEntity).CurrentValues.SetValues(updatedChild);
@@ -160,10 +153,7 @@ public class DbContextService : IDbContextService
     // Children の削除
     public async Task DeleteChildrenAsync(int childrenId)
     {
-        Children? childrenEntity = await _dbContext.Childrens.FindAsync(childrenId);
-        if (childrenEntity == null)
-            throw new KeyNotFoundException($"Children with ID {childrenId} not found.");
-
+        Children? childrenEntity = await _dbContext.Childrens.FindAsync(childrenId) ?? throw new KeyNotFoundException($"Children with ID {childrenId} not found.");
         _dbContext.Childrens.Remove(childrenEntity);
         await _dbContext.SaveChangesAsync();
     }
@@ -180,14 +170,84 @@ public class DbContextService : IDbContextService
             {
                 Name = field.Name,
                 Label = field.Label,
+                Caption = field.Caption,
                 FieldType = field.FieldType,
                 IsRequired = field.IsRequired,
-                OptionsJson = field.Options // JSONとして保存
+                OptionsJson = field.OptionList != null && field.OptionList.Any()
+                ? JsonSerializer.Serialize(field.OptionList.Select(opt => opt.Option))
+                : null // OptionListが空の場合はnullを保存
             }).ToList()
         };
 
         _dbContext.Forms.Add(newForm);
         await _dbContext.SaveChangesAsync();
+    }
+
+    // Form の取得
+    public async Task<List<Form>> GetFormAsync(Func<IQueryable<Form>, IQueryable<Form>> queryModifier)
+    {
+        try
+        {
+            IQueryable<Form> items = _dbContext.Forms.Include(f => f.FormFields);
+            IQueryable<Form> modifiedQuery = queryModifier(items);
+            return await modifiedQuery.ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new DataException("Error retrieving classes.", ex);
+        }
+    }
+
+    public async Task<Form?> GetFormByIdAsync(int formId)
+    {
+        return await _dbContext.Forms
+            .Include(f => f.FormFields)
+            .FirstOrDefaultAsync(f => f.Id == formId);
+    }
+
+    public async Task UpdateFormAsync(int formId, FormModel formModel, List<FormFieldModel> formFields)
+    {
+        try
+        {
+            // 既存のフォームを取得
+            Form? form = await _dbContext.Forms
+                .Include(f => f.FormFields) // 関連データを含める
+                .FirstOrDefaultAsync(f => f.Id == formId);
+
+            if (form == null)
+            {
+                throw new Exception($"Form with ID {formId} not found.");
+            }
+
+            // フォームのプロパティを更新
+            form.Name = formModel.Name;
+            form.Description = formModel.Description;
+
+            // フィールドを更新
+            form.FormFields.Clear(); // 既存のフィールドをクリア
+            foreach (FormFieldModel fieldModel in formFields)
+            {
+                FormField newField = new()
+                {
+                    Name = fieldModel.Name,
+                    Label = fieldModel.Label,
+                    Caption = fieldModel.Caption,
+                    FieldType = fieldModel.FieldType,
+                    IsRequired = fieldModel.IsRequired,
+                    OptionsJson = fieldModel.OptionList != null && fieldModel.OptionList.Any()
+                ? JsonSerializer.Serialize(fieldModel.OptionList.Select(opt => opt.Option))
+                : null // OptionListが空の場合はnullを保存
+                };
+                form.FormFields.Add(newField);
+            }
+
+            // 変更を保存
+            await _dbContext.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            throw new Exception("Error updating the form.", ex);
+        }
     }
 
 

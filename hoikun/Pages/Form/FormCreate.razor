@@ -1,0 +1,162 @@
+﻿@page "/form-builder"
+@inject IDbContextService FormService
+@inject NavigationManager NavigationManager
+@using hoikun.Models
+
+<EditForm Model="formModel" OnValidSubmit="SaveForm" Context="editFormContext">
+    <DataAnnotationsValidator />
+
+    <DxFormLayout CssClass="pb-4">
+        <DxFormLayoutGroup Caption="フォーム設定">
+            <DxFormLayoutItem Caption="フォーム名" ColSpanMd="12" Context="formItemContext">
+                <DxTextBox @bind-Text="formModel.Name" />
+            </DxFormLayoutItem>
+            <DxFormLayoutItem Caption="説明" ColSpanMd="12" Context="formItemContext">
+
+                <DxHtmlEditor Height="500px" @bind-Markup="formModel.Description">
+
+            </DxHtmlEditor>
+            </DxFormLayoutItem>
+        </DxFormLayoutGroup>
+
+        @foreach (var field in formFields)
+        {
+            <DxFormLayoutGroup Caption="@("質問設定" + field.Id)">
+                <DxFormLayoutItem Caption="質問名" ColSpanMd="12" Context="formItemContext">
+                    <DxTextBox @bind-Text="field.Name" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="ラベル" ColSpanMd="12" Context="formItemContext">
+                    <DxTextBox @bind-Text="field.Label" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="質問の説明" ColSpanMd="12" Context="formItemContext">
+                    <DxMemo @bind-Text="field.Caption" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="必須" ColSpanMd="12" Context="formItemContext">
+                    <InputCheckbox @bind-Value="field.IsRequired" />
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem Caption="質問形式" ColSpanMd="12" Context="formItemContext">
+                    <DxComboBox Data="@FieldTypes" @bind-Value="field.FieldType" InputId="cbOccupation" />
+                </DxFormLayoutItem>
+
+                @if (field.FieldType == "選択形式")
+                {
+                    <DxFormLayoutGroup Caption="オプション設定">
+                        @foreach (var option in field.OptionList)
+                        {
+                            <DxFormLayoutItem Caption="@("オプション" + option.Id)" ColSpanMd="10" Context="formItemContext">
+                                <DxTextBox @bind-Text="option.Option" />
+                            </DxFormLayoutItem>
+                            <DxFormLayoutItem ColSpanMd="2" Context="formItemContext">
+                                <DxButton  Click="@(() => RemoveOption(field, option))">削除</DxButton>
+                            </DxFormLayoutItem>
+                        }
+
+                        <DxFormLayoutItem ColSpanMd="12" Context="formItemContext">
+                            <DxButton CssClass="w-100" Click="@(() => AddOption(field))" RenderStyle="ButtonRenderStyle.Secondary">オプションを追加</DxButton>
+                        </DxFormLayoutItem>
+                    </DxFormLayoutGroup>
+                }
+
+                <DxFormLayoutItem Caption="削除" ColSpanMd="12" Context="formItemContext">
+                    <DxButton Click="@(() => RemoveField(field))" Context="buttonContext">質問を削除</DxButton>
+                </DxFormLayoutItem>
+            </DxFormLayoutGroup>
+
+        }
+
+
+        <DxFormLayoutItem ColSpanMd="12" Context="formItemContext">
+            <ChildContent>
+                <DxButton CssClass="w-100"
+                          RenderStyle="ButtonRenderStyle.Primary"
+                          RenderStyleMode="ButtonRenderStyleMode.Outline"
+                          Click="AddField"
+                          Context="buttonContext">質問を追加</DxButton>
+
+            </ChildContent>
+        </DxFormLayoutItem>
+
+
+        <DxFormLayoutItem ColSpanMd="12" Context="formItemContext">
+            <ChildContent>
+                <DxButton CssClass="w-100"
+                          RenderStyle="ButtonRenderStyle.Primary"
+                          SubmitFormOnClick="true"
+                          Text="保存" />
+            </ChildContent>
+
+        </DxFormLayoutItem>
+    </DxFormLayout>
+
+
+</EditForm>
+
+
+@code {
+    private FormModel formModel = new FormModel();
+    private List<FormFieldModel> formFields = new();
+    private IEnumerable<string> FieldTypes = new List<string> { "テキスト", "数値", "日付", "選択形式" };
+
+    private void AddField()
+    {
+        try
+        {
+            formFields.Add(new FormFieldModel
+                {
+                    Id = formFields.Count + 1,
+                    Name = $"Field{formFields.Count + 1}",
+                    Label = $"フィールド {formFields.Count + 1}",
+                    FieldType = "テキスト",
+                    IsRequired = false
+                });
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+
+    }
+
+    private void RemoveField(FormFieldModel field)
+    {
+        formFields.Remove(field);
+    }
+
+    private async Task SaveForm()
+    {
+        // サーバーに送信
+        try
+        {
+            await FormService.CreateFormAsync(formModel, formFields);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+        finally
+        {
+            NavigationManager.NavigateTo("/forms"); // フォーム一覧ページにリダイレクト
+
+        }
+    }
+
+    private void AddOption(FormFieldModel field)
+    {
+        field.OptionList.Add(new FormFieldOption
+            {
+                Id = field.OptionList.Count + 1,
+                Option = $"オプション{field.OptionList.Count + 1}"
+            });
+    }
+
+    private void RemoveOption(FormFieldModel field, FormFieldOption option)
+    {
+        field.OptionList.Remove(option);
+    }
+
+}

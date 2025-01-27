@@ -1,0 +1,58 @@
+﻿@page "/form-list"
+@inject IDbContextService FormService
+
+
+@using Microsoft.EntityFrameworkCore
+
+@inject UserStateService UserStateService
+@inject ApplicationDbContext dbContext
+@inject IDbContextService dbContextService
+@attribute [Authorize]
+
+<DxGrid @ref="Grid"
+        Data="@forms"
+        TextWrapEnabled="false"
+        PageSize="20">
+
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="Id" MinWidth="100" />
+        <DxGridDataColumn FieldName="Name" MinWidth="100" />
+        <DxGridDataColumn FieldName="CreatedAt" Width="15%" />
+        <DxGridDataColumn FieldName="Id" Width="15%">
+            <CellDisplayTemplate>
+                <button class="btn btn-link grid-btn-link" @onclick="() => EditFormButtonClick((int)context.Value)">
+                    詳細を見る
+                </button>
+            </CellDisplayTemplate>
+            <HeaderCaptionTemplate>
+                詳細
+            </HeaderCaptionTemplate>
+        </DxGridDataColumn>
+    </Columns>
+</DxGrid>
+
+
+@code {
+    private List<Form> forms = new();
+
+    private FormModel formModel = new FormModel();
+    private List<FormFieldModel> formFields = new();
+    private IEnumerable<string> FieldTypes = new List<string> { "テキスト", "数値", "日付", "選択形式" };
+    IGrid? Grid { get; set; }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // フォーム一覧を取得
+        forms = await dbContextService.GetFormAsync(query => query);
+    }
+
+    private void EditFormButtonClick(int formId)
+    {
+        // クエリパラメータ付きでページ遷移
+        NavigationManager.NavigateTo($"/edit-form/{formId}");
+    }
+}

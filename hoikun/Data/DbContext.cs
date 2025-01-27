@@ -384,6 +384,7 @@ namespace hoikun.Data
         public int FormId { get; set; }
         public string Name { get; set; } = string.Empty;
         public string Label { get; set; } = string.Empty;
+        public string Caption { get; set; } = string.Empty;
         public string FieldType { get; set; } = "text"; // 入力タイプ (text, number, date, select, etc.)
         public bool IsRequired { get; set; }
         public int Order { get; set; }
