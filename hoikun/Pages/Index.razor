@@ -7,8 +7,294 @@
 @inject UserStateService UserStateService
 
 
+<DxLayoutBreakpoint MinWidth="800" @bind-IsActive="@isMediumScreen" />
+
+<div class="h-100 overflow-auto p-2">
+    <DxGridLayout CssClass="h-100" ColumnSpacing="16px" RowSpacing="16px">
+        <Rows>
+            @if (isMediumScreen)
+            {
+                <DxGridLayoutRow Areas="item01 item02 item03 item04 item05" />
+                <DxGridLayoutRow Areas="item06 item07 item08 item09 item10" />
+                <DxGridLayoutRow Areas="item11 item12 item13 item14 item15" />
+                <DxGridLayoutRow Areas="item16 item17 item18 item19 item20" />
+                <DxGridLayoutRow Areas="item21 item22 item23 item24 item25" />
+                <DxGridLayoutRow Areas="item26 item27 item28 item29 item30" />
+            }
+            else
+            {
+                <DxGridLayoutRow Areas="item01 item02 item03" />
+                <DxGridLayoutRow Areas="item04 item05 item06" />
+                <DxGridLayoutRow Areas="item07 item08 item09" />
+                <DxGridLayoutRow Areas="item10 item11 item12" />
+                <DxGridLayoutRow Areas="item13 item14 item15" />
+                <DxGridLayoutRow Areas="item16 item17 item18" />
+                <DxGridLayoutRow Areas="item19 item20 item21" />
+                <DxGridLayoutRow Areas="item22 item23 item24" />
+                <DxGridLayoutRow Areas="item25 item26 item27" />
+                <DxGridLayoutRow Areas="item28 item29 item30" />
+            }
+        </Rows>
+         <Columns>
+            @if (isMediumScreen)
+            {
+                <DxGridLayoutColumn />
+                <DxGridLayoutColumn />
+                <DxGridLayoutColumn />
+                <DxGridLayoutColumn />
+                <DxGridLayoutColumn />
+            }
+            else
+            {
+                <DxGridLayoutColumn />
+                <DxGridLayoutColumn />
+                <DxGridLayoutColumn />
+            }
+        </Columns>
+        <Items>
+            @if (isMediumScreen)
+            {
+                @foreach (var item in menuItems)
+                {
+                    <DxGridLayoutItem Area="@item.Area">
+                        <Template>
+                            <div class="d-flex flex-column align-items-center justify-content-center text-center">
+                                <NavLink href="@item.Link" class="text-decoration-none text-dark">
+                                    <img src="@item.IconPath" alt="@item.AltText" style="width:70px; height:auto;" />
+                                    <h5>@item.DisplayText</h5>
+                                </NavLink>
+                            </div>
+                        </Template>
+                    </DxGridLayoutItem>
+                }
+            }
+            else
+            {
+                @foreach (var item in menuItems)
+                {
+                    <DxGridLayoutItem Area="@item.Area">
+                        <Template>
+                            <div class="d-flex flex-column align-items-center justify-content-center text-center">
+                                <NavLink href="@item.Link" class="text-decoration-none text-dark">
+                                    <img src="@item.IconPath" alt="@item.AltText" style="width:35px; height:auto;" />
+                                    <h5>@item.DisplayText</h5>
+                                </NavLink>
+                            </div>
+                        </Template>
+                    </DxGridLayoutItem>
+                }
+            }
+            
+        </Items>
+    </DxGridLayout>
+</div>
+
 
 @code {
-   
+    bool isMediumScreen = false;
+
+    // ここで 9 個のメニューアイテムを定義
+    private List<MenuItem> menuItems = new()
+    {
+        new MenuItem {
+            Area = "item01",
+            Link = "/DailyBoard",
+            IconPath = "/images/01_デイリーボード.svg",
+            AltText = "Daily Board Icon",
+            DisplayText = "デイリーボード"
+        },
+        new MenuItem {
+            Area = "item02",
+            Link = "/message-list",
+            IconPath = "/images/02_保護者からの連絡.svg",
+            AltText = "Contact from Parents Icon",
+            DisplayText = "保護者からの連絡"
+        },
+        new MenuItem {
+            Area = "item03",
+            Link = "/DailyBoard",
+            IconPath = "/images/03_メッセージ一覧.svg",
+            AltText = "Messages Icon",
+            DisplayText = "メッセージ一覧"
+        },
+        new MenuItem {
+            Area = "item04",
+            Link = "/DailyBoard",
+            IconPath = "/images/04_メッセージ配信.svg",
+            AltText = "Message Distribution Icon",
+            DisplayText = "メッセージ配信"
+        },
+        new MenuItem {
+            Area = "item05",
+            Link = "/DailyBoard",
+            IconPath = "/images/05_連絡帳.svg",
+            AltText = "Contact Book Icon",
+            DisplayText = "連絡帳"
+        },
+        new MenuItem {
+            Area = "item06",
+            Link = "/DailyBoard",
+            IconPath = "/images/06_イベント管理.svg",
+            AltText = "Event Management Icon",
+            DisplayText = "イベント管理"
+        },
+        new MenuItem {
+            Area = "item07",
+            Link = "/DailyBoard",
+            IconPath = "/images/07_子供台帳.svg",
+            AltText = "Child Register Icon",
+            DisplayText = "子供台帳"
+        },
+        new MenuItem {
+            Area = "item08",
+            Link = "/DailyBoard",
+            IconPath = "/images/08_お薬連絡.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "お薬連絡"
+        },
+        new MenuItem {
+            Area = "item09",
+            Link = "/DailyBoard",
+            IconPath = "/images/09_治癒報告書.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "治癒報告書"
+        },
+        new MenuItem {
+            Area = "item10",
+            Link = "/DailyBoard",
+            IconPath = "/images/10_給食管理.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "給食管理"
+        },
+        new MenuItem {
+            Area = "item11",
+            Link = "/DailyBoard",
+            IconPath = "/images/11_写真.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "写真"
+        },
+        new MenuItem {
+            Area = "item12",
+            Link = "/DailyBoard",
+            IconPath = "/images/12_ヒヤリハット.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "ヒヤリハット"
+        },
+        new MenuItem {
+            Area = "item13",
+            Link = "/DailyBoard",
+            IconPath = "/images/13_登園降園.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "登園降園"
+        },
+        new MenuItem {
+            Area = "item14",
+            Link = "/DailyBoard",
+            IconPath = "/images/14_帳票出力.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "帳票出力"
+        },
+        new MenuItem {
+            Area = "item15",
+            Link = "/DailyBoard",
+            IconPath = "/images/15_緊急連絡.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "緊急連絡"
+        },
+        new MenuItem {
+            Area = "item16",
+            Link = "/DailyBoard",
+            IconPath = "/images/16_worktime.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "Work Time!"
+        },
+        new MenuItem {
+            Area = "item17",
+            Link = "/DailyBoard",
+            IconPath = "/images/17_シフト管理.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "シフト管理"
+        },
+        new MenuItem {
+            Area = "item18",
+            Link = "/DailyBoard",
+            IconPath = "/images/18_見学予約.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "見学予約"
+        },
+        new MenuItem {
+            Area = "item19",
+            Link = "/DailyBoard",
+            IconPath = "/images/19_研修受講記録.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "研修受講記録"
+        },
+        new MenuItem {
+            Area = "item20",
+            Link = "/DailyBoard",
+            IconPath = "/images/20_ウェザーニュース.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "ウェザーニュース"
+        },
+        new MenuItem {
+            Area = "item21",
+            Link = "/DailyBoard",
+            IconPath = "/images/21_監査用.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "監査用"
+        },
+        new MenuItem {
+            Area = "item22",
+            Link = "/DailyBoard",
+            IconPath = "/images/22_資料館.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "資料館"
+        },
+        new MenuItem {
+            Area = "item23",
+            Link = "/DailyBoard",
+            IconPath = "/images/23_来客予定.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "来客予定"
+        },
+        new MenuItem {
+            Area = "item24",
+            Link = "/DailyBoard",
+            IconPath = "/images/24_申請承認月締め.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "月締め,承認,申請"
+        },
+        new MenuItem {
+            Area = "item25",
+            Link = "/DailyBoard",
+            IconPath = "/images/25_共有事項.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "共有事項"
+        },
+        new MenuItem {
+            Area = "item26",
+            Link = "/DailyBoard",
+            IconPath = "/images/26_アンケート.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "アンケート"
+        },
+        new MenuItem {
+            Area = "item27",
+            Link = "/DailyBoard",
+            IconPath = "/images/27_設定.svg",
+            AltText = "Medicine Info Icon",
+            DisplayText = "設定"
+        },
+    };
+
+    public class MenuItem
+    {
+        public string Area { get; set; }        // レイアウトの "Area" 名
+        public string Link { get; set; }        // NavLinkで飛ぶ先
+        public string IconPath { get; set; }    // 画像パス
+        public string AltText { get; set; }     // 画像の alt 属性
+        public string DisplayText { get; set; } // 表示するテキスト
+    }
+
 
 }

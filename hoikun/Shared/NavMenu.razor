@@ -3,6 +3,7 @@
 @using System.Security.Claims
 @using hoikun.Data
 @using Microsoft.EntityFrameworkCore
+@attribute [Authorize]
 
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserStateService UserStateService
@@ -18,13 +19,11 @@
             <DxTreeViewNode NavigateUrl="/form-builder" Text="フォーム作成" />
             <DxTreeViewNode NavigateUrl="/form-list" Text="フォーム一覧" />
 
-
             <DxTreeViewNode Text="スケジュール">
                 <Nodes>
                     <DxTreeViewNode NavigateUrl="/schedule?view=0" Text="月間日程" />
                     <DxTreeViewNode NavigateUrl="/schedule?view=1" Text="週間日程" />
                     <DxTreeViewNode NavigateUrl="/schedule?view=2" Text="日程" />
-
 
                     @if (UserStateService.Role == "admin")
                     {
@@ -56,7 +55,7 @@
 
             <DxTreeViewNode Text="メッセージ">
                 <Nodes>
-                    <DxTreeViewNode NavigateUrl="/messages" Text="メッセージリスト" />
+                    <DxTreeViewNode NavigateUrl="/message-list" Text="メッセージリスト" />
 
                 </Nodes>
             </DxTreeViewNode>

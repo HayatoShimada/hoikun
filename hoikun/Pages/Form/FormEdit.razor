@@ -20,11 +20,11 @@
         @foreach (var field in formFields)
         {
             <DxFormLayoutGroup Caption="@($"質問設定 {field.Id}")">
-                <DxFormLayoutItem Caption="質問名" ColSpanMd="12" Context="formItemContext">
+                <DxFormLayoutItem Caption="質問グループ" ColSpanMd="12" Context="formItemContext">
                     <DxTextBox @bind-Text="field.Name" />
                 </DxFormLayoutItem>
 
-                <DxFormLayoutItem Caption="ラベル" ColSpanMd="12" Context="formItemContext">
+                <DxFormLayoutItem Caption="質問名" ColSpanMd="12" Context="formItemContext">
                     <DxTextBox @bind-Text="field.Label" />
                 </DxFormLayoutItem>
 
@@ -76,7 +76,7 @@
 
     private FormModel formModel = new FormModel();
     private List<FormFieldModel> formFields = new();
-    private IEnumerable<string> FieldTypes = new List<string> { "テキスト", "数値", "日付", "選択形式" };
+    private IEnumerable<string> FieldTypes = new List<string> { "テキスト", "数値", "日付", "時刻", "日時", "選択形式" };
 
     protected override async Task OnInitializedAsync()
     {
