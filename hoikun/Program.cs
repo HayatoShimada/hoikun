@@ -1,5 +1,6 @@
 using hoikun.Data;
 using hoikun.Services;
+
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc.Authorization;
@@ -84,5 +85,11 @@ app.MapRazorPages();
 
 app.MapBlazorHub();
 app.MapFallbackToPage("/_Host");
-
-app.Run();
+try
+{
+    app.Run();
+}
+catch (Exception ex)
+{
+    Console.WriteLine(ex.Message);
+}
