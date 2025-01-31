@@ -41,7 +41,7 @@
     onDetected: function (success) {
         const isbn = success.codeResult.code;
         // ISBNは通常 "978" で始まる (978-4-xx)
-        if (isbn && isbn.startsWith("978")) {
+        if (isbn) {
             if (this.dotNetObj) {
                 // Blazor側(C#)に「バーコードを読み取った」ことを通知
                 this.dotNetObj.invokeMethod('CodeDetected', isbn);
