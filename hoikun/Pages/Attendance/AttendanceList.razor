@@ -1,0 +1,63 @@
+﻿@page "/attendance_list"
+
+@using Microsoft.EntityFrameworkCore
+
+@inject UserStateService StateService
+@inject ApplicationDbContext dbContext
+@inject IDbContextService dbContextService
+@attribute [Authorize]
+
+<h3>打刻アプリ起動</h3>
+<NavLink href="/BarcodeScan">
+    <DxButton>カメラ起動</DxButton>
+</NavLink>
+
+<h3>タイムカード一覧</h3>
+<DxGrid @ref="Grid"
+        Data="@timeCards"
+        TextWrapEnabled="false"
+        PageSize="20">
+
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="TimeCardId" MinWidth="100" />
+        <DxGridDataColumn FieldName="EmployeeId" MinWidth="100" />
+        <DxGridDataColumn FieldName="CreatedAt" Width="15%" />
+        <DxGridDataColumn FieldName="Id" Width="15%">
+            <CellDisplayTemplate>
+                <button class="btn btn-link grid-btn-link" @onclick="() => EditButtonClick((int)context.Value)">
+                    詳細を見る
+                </button>
+            </CellDisplayTemplate>
+            <HeaderCaptionTemplate>
+                詳細
+            </HeaderCaptionTemplate>
+        </DxGridDataColumn>
+    </Columns>
+</DxGrid>
+
+
+
+@code {
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = null!;
+
+    private List<TimeCard> timeCards = new List<TimeCard>();
+    IGrid? Grid { get; set; }
+
+
+
+    // フォーム一覧を取得
+    protected override async Task OnInitializedAsync()
+    {
+        timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == StateService.ModelId));
+    }
+
+
+    // クエリパラメータ付きでページ遷移
+    private void EditButtonClick(int timeCardId)
+    {
+        NavigationManager.NavigateTo($"/timecard-edit/{timeCardId}");
+    }
+
+}

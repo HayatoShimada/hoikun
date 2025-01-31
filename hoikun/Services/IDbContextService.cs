@@ -40,4 +40,8 @@ public interface IDbContextService
     // Form の更新
     Task UpdateFormAsync(int formId, FormModel form, List<FormFieldModel> fields);
 
+    // TimeCardの取得
+    Task<List<TimeCard>> GetTimeCardAsync(Func<IQueryable<TimeCard>, IQueryable<TimeCard>> queryModifier);
+
+
 }

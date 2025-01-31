@@ -250,5 +250,16 @@ public class DbContextService : IDbContextService
         }
     }
 
+    public async Task<List<TimeCard>> GetTimeCardAsync(
+            Func<IQueryable<TimeCard>, IQueryable<TimeCard>>? queryModifier = null)
+    {
+        IQueryable<TimeCard> query = _dbContext.TimeCards;
 
+        if (queryModifier != null)
+        {
+            query = queryModifier(query);
+        }
+
+        return await query.ToListAsync();
+    }
 }
