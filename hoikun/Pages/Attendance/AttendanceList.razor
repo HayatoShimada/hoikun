@@ -50,7 +50,7 @@
     // フォーム一覧を取得
     protected override async Task OnInitializedAsync()
     {
-        timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == StateService.ModelId));
+        timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
     }
 
 

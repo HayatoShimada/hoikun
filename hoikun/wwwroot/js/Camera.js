@@ -12,10 +12,12 @@
             inputStream: {
                 type: "LiveStream",
                 constraints: {
+                    width: { ideal: 640 },  // 解像度を設定
+                    height: { ideal: 480 },
                     facingMode: "environment"  // 背面カメラ (スマホ等)
                 },
                 // カメラ映像を表示するターゲット要素
-                target: document.querySelector('#camera')
+                target: document.getElementById("camera")
             },
             decoder: {
                 readers: ["ean_reader"]  // EAN(ISBN)を読む

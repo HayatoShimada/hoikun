@@ -1,0 +1,19 @@
+{
+  "name": "hoikun",
+  "version": "1.0.0",
+  "main": "wwwroot/js/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HayatoShimada/hoikun.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/HayatoShimada/hoikun/issues"
+  },
+  "homepage": "https://github.com/HayatoShimada/hoikun#readme",
+  "description": ""
+}
