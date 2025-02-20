@@ -13,7 +13,7 @@
 </NavLink>
 
 <h3>タイムカード一覧</h3>
-<DxGrid @ref="Grid"
+<DxGrid @ref="GridCard"
         Data="@timeCards"
         TextWrapEnabled="false"
         PageSize="20">
@@ -36,23 +36,47 @@
     </Columns>
 </DxGrid>
 
+<h3>先生一覧</h3>
+<DxGrid @ref="GridTeacher"
+        Data="@users"
+        TextWrapEnabled="false"
+        PageSize="20">
 
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="Name" MinWidth="100" />
+        <DxGridDataColumn FieldName="UserId" Caption="バーコード" MinWidth="150">
+            <CellDisplayTemplate Context="cellContext">
+                @{
+                    var classItem = (User)cellContext.DataItem;
+                    var barcodeId = $"barcode-{classItem.UserId}";
+                }
+                <svg id="@barcodeId"></svg>
+            </CellDisplayTemplate>
+        </DxGridDataColumn>
+    </Columns>
+</DxGrid>
 
 @code {
     [Inject]
     private NavigationManager NavigationManager { get; set; } = null!;
+    [Inject]
+    private IJSRuntime JsRuntime { get; set; } = null!;
 
     private List<TimeCard> timeCards = new List<TimeCard>();
-    IGrid? Grid { get; set; }
+    private List<User>? users = new List<User>();
 
+    IGrid? GridCard { get; set; }
+    IGrid? GridTeacher { get; set; }
 
+    private bool isFirstRender = true;
 
     // フォーム一覧を取得
     protected override async Task OnInitializedAsync()
     {
         timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
+        users = await dbContextService.GetUserAsync("Teacher");
     }
-
 
     // クエリパラメータ付きでページ遷移
     private void EditButtonClick(int timeCardId)
@@ -60,4 +84,26 @@
         NavigationManager.NavigateTo($"/timecard-edit/{timeCardId}");
     }
 
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (isFirstRender)
+        {
+            isFirstRender = false;
+            await InvokeBarcodeGeneration();
+        }
+    }
+
+    private async Task InvokeBarcodeGeneration()
+    {
+        if (users != null && users.Any())
+        {
+            await Task.Delay(500); // レンダリングを待つ
+
+            foreach (var user in users)
+            {
+                var barcodeId = $"barcode-{user.UserId}";
+                await JsRuntime.InvokeVoidAsync("generateBarcode", barcodeId, user.UserId);
+            }
+        }
+    }
 }

@@ -262,4 +262,16 @@ public class DbContextService : IDbContextService
 
         return await query.ToListAsync();
     }
+
+    public async Task<List<User>> GetUserAsync(string? role)
+    {
+        IQueryable<User> query = _dbContext.Users;
+
+        if (role != null)
+        {
+            query = query.Where(q =>  q.Role == role);
+        }
+
+        return await query.ToListAsync();
+    }
 }

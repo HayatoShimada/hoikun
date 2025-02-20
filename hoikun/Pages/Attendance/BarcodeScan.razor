@@ -1,15 +1,14 @@
 ﻿@page "/BarcodeScan"
+@implements IDisposable
 @using Microsoft.JSInterop
-@using hoikun.Pages.Attendance
 
-<!-- カメラ映像を表示するための要素 -->
 <DxGridLayout CssClass="h-100" ColumnSpacing="16px" RowSpacing="16px">
     <Rows>
+        <DxGridLayoutRow Areas="header" />
         <DxGridLayoutRow Areas="item01" />
         <DxGridLayoutRow Areas="item02" />
         <DxGridLayoutRow Areas="item03" />
         <DxGridLayoutRow Areas="item04" />
-
     </Rows>
 
     <Columns>
@@ -17,90 +16,94 @@
     </Columns>
 
     <Items>
+        <DxGridLayoutItem Area="header">
+            <Template>
+                <h2>勤退バーコードスキャン</h2>
+            </Template>
+        </DxGridLayoutItem>
+
         <DxGridLayoutItem Area="item01">
             <Template>
                 <div id="camera"></div>
             </Template>
-       </DxGridLayoutItem>
+        </DxGridLayoutItem>
+
         <DxGridLayoutItem Area="item02">
             <Template>
                 <div id="my_result">***</div>
             </Template>
         </DxGridLayoutItem>
+
         <DxGridLayoutItem Area="item03">
             <Template>
                 <div id="my_barcode"></div>
             </Template>
         </DxGridLayoutItem>
-        <DxGridLayoutItem>
+
+        <DxGridLayoutItem Area="item04">
             <Template>
                 <DxButton Click="StartCapture">スキャン開始</DxButton>
             </Template>
         </DxGridLayoutItem>
     </Items>
-
 </DxGridLayout>
 
-
 <div class="mt-3">
-    <h4>スキャン結果: @ScannedIsbn</h4>
+    <h4>スキャン結果: @ScannedBarcode</h4>
 </div>
 
 @code {
-    // JSRuntime インジェクション
     [Inject] private IJSRuntime JS { get; set; } = default!;
 
-    // DotNetObjectReferenceを保持
     private DotNetObjectReference<BarcodeScan>? objRef;
+    private string? ScannedBarcode;
 
-    // 読み取ったISBN
-    private string? ScannedIsbn;
-
-    // 初回レンダリング後にDotNetObjectReferenceを作成
     protected override void OnAfterRender(bool firstRender)
     {
         try
         {
             if (firstRender)
             {
+                objRef?.Dispose(); // 既存のオブジェクトを破棄
                 objRef = DotNetObjectReference.Create(this);
+                Console.WriteLine("DotNetObjectReference created.");
             }
             base.OnAfterRender(firstRender);
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.WriteLine("OnAfterRender error: " + ex.Message);
         }
-        
     }
 
-    // 「Start Capture」押下時にJSのbarcodeScan.startCaptureを呼び出す
     private async Task StartCapture()
     {
         try
         {
             if (objRef != null)
             {
+                Console.WriteLine("Starting capture with JS...");
                 await JS.InvokeVoidAsync("barcodeScan.startCapture", objRef);
+            }
+            else
+            {
+                Console.WriteLine("Error: DotNetObjectReference is null.");
             }
         }
         catch (Exception ex)
         {
-            Console.WriteLine(ex.Message);
+            Console.WriteLine("StartCapture error: " + ex.Message);
         }
-        
     }
 
-    // JS側から呼ばれるメソッド (バーコード検知時)
     [JSInvokable]
-    public void CodeDetected(string isbn)
+    public void CodeDetected(string barcode)
     {
-        ScannedIsbn = isbn;
-        // 画面更新
+        Console.WriteLine($"CodeDetected received: {barcode}");
+        ScannedBarcode = barcode;
         StateHasChanged();
     }
 
-    // コンポーネント破棄時にDotNetObjectReferenceをDispose
     public void Dispose()
     {
         objRef?.Dispose();

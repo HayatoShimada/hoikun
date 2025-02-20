@@ -5,6 +5,10 @@ public interface IDbContextService
 {
     Task<IEnumerable<ClassTeacher>> GetClassTeachersAsync(int? classId);
     Task<ClassTeacher?> GetClassTeacherAsync(int classId, int userId);
+
+    Task<List<User>?> GetUserAsync(string? role);
+
+
     Task AddClassTeacherAsync(ClassTeacher classTeacher);
     Task UpdateClassTeacherAsync(ClassTeacher classTeacher);
     Task DeleteClassTeacherAsync(ClassTeacher classTeacher);

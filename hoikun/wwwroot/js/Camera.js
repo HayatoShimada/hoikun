@@ -1,53 +1,66 @@
 ﻿window.barcodeScan = {
-    // Blazor 側の DotNetObjectReference を保持するための変数
     dotNetObj: null,
 
-    // バーコードのキャプチャ開始
     startCapture: function (dotNetObj) {
-        // 参照を保持
         this.dotNetObj = dotNetObj;
 
-        // QuaggaJS 初期化
+        console.log("StartCapture called, dotNetObj:", this.dotNetObj);
+
+        const target = document.getElementById("camera");
+        if (!target) {
+            console.error("Error: Camera target element not found.");
+            return;
+        }
+
         Quagga.init({
             inputStream: {
                 type: "LiveStream",
                 constraints: {
-                    width: { ideal: 640 },  // 解像度を設定
+                    width: { ideal: 640 },
                     height: { ideal: 480 },
-                    facingMode: "environment"  // 背面カメラ (スマホ等)
+                    facingMode: "environment"
                 },
-                // カメラ映像を表示するターゲット要素
-                target: document.getElementById("camera")
+                target: target
             },
             decoder: {
-                readers: ["ean_reader"]  // EAN(ISBN)を読む
+                readers: ["code_128_reader"]
             }
         }, (err) => {
             if (err) {
-                console.log(err);
+                console.error("QuaggaJS init error:", err);
                 return;
             }
-            // バーコードスキャン開始
+            console.log("QuaggaJS started.");
             Quagga.start();
         });
 
-        // バーコードが検出されたときのイベントを登録
         Quagga.onDetected((data) => {
             window.barcodeScan.onDetected(data);
         });
     },
 
-    // バーコード検知時の処理
     onDetected: function (success) {
-        const isbn = success.codeResult.code;
-        // ISBNは通常 "978" で始まる (978-4-xx)
-        if (isbn) {
-            if (this.dotNetObj) {
-                // Blazor側(C#)に「バーコードを読み取った」ことを通知
-                this.dotNetObj.invokeMethod('CodeDetected', isbn);
-            }
-            // 1回検出したら止めたい場合は、Quagga.stop() など呼んでもOK
-            // Quagga.stop();
+        const barcode = success.codeResult?.code;
+        if (!barcode) {
+            console.warn("No barcode detected.");
+            return;
+        }
+
+        console.log("Barcode detected:", barcode);
+
+        if (!this.dotNetObj) {
+            console.warn("dotNetObj is null. Cannot invoke CodeDetected.");
+            return;
+        }
+
+        try {
+            this.dotNetObj.invokeMethodAsync('CodeDetected', barcode);
+            console.log("Blazor method CodeDetected invoked successfully.");
+
+            // 1回だけ呼び出す
+            Quagga.stop();
+        } catch (error) {
+            console.error("Error invoking CodeDetected:", error);
         }
     }
 };
