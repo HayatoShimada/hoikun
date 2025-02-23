@@ -47,5 +47,6 @@ public interface IDbContextService
     // TimeCardの取得
     Task<List<TimeCard>> GetTimeCardAsync(Func<IQueryable<TimeCard>, IQueryable<TimeCard>> queryModifier);
 
+    Task SubmitFormAsync(FormSubmission submission);
 
 }

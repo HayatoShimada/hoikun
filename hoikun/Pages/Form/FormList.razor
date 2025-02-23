@@ -26,6 +26,17 @@
                 詳細
             </HeaderCaptionTemplate>
         </DxGridDataColumn>
+        <DxGridDataColumn FieldName="Id" Width="15%">
+            <CellDisplayTemplate>
+                <button class="btn btn-link grid-btn-link" @onclick="() => EditFormAnswerClick((int)context.Value)">
+                    回答ページ表示
+                </button>
+            </CellDisplayTemplate>
+            <HeaderCaptionTemplate>
+                回答
+            </HeaderCaptionTemplate>
+        </DxGridDataColumn>
+
     </Columns>
 </DxGrid>
 
@@ -52,4 +63,11 @@
         // クエリパラメータ付きでページ遷移
         NavigationManager.NavigateTo($"/edit-form/{formId}");
     }
+
+    private void EditFormAnswerClick(int formId)
+    {
+        // クエリパラメータ付きでページ遷移
+        NavigationManager.NavigateTo($"/answer-form/{formId}");
+    }
+
 }

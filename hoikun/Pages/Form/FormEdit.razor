@@ -76,7 +76,7 @@
 
     private FormModel formModel = new FormModel();
     private List<FormFieldModel> formFields = new();
-    private IEnumerable<string> FieldTypes = new List<string> { "テキスト", "数値", "日付", "時刻", "日時", "選択形式" };
+    private IEnumerable<string> FieldTypes = new List<string> { "テキスト","長文", "数値", "日付", "時刻", "日時", "選択形式" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -98,9 +98,19 @@
                     Caption = f.Caption,
                     FieldType = f.FieldType,
                     IsRequired = f.IsRequired,
-                    OptionList = string.IsNullOrEmpty(f.OptionsJson)
-                        ? new List<FormFieldOption>()
-                        : JsonSerializer.Deserialize<List<FormFieldOption>>(f.OptionsJson)
+                    OptionList = string.IsNullOrWhiteSpace(f.OptionsJson)
+            ? new List<FormFieldOption>()
+            : JsonSerializer.Deserialize<List<string>>(f.OptionsJson)
+                .Select((option, index) => new FormFieldOption
+                {
+                    Id = index + 1, // 連番を振る
+                    FormFieldId = f.Id, // フィールドIDを設定
+                    Option = option
+                })
+                .ToList()
+
+
+
                 }).ToList();
         }
     }

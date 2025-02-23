@@ -1,0 +1,140 @@
+﻿@page "/answer-form/{formId:int}"
+@inject IDbContextService FormService
+@inject NavigationManager NavigationManager
+@inject UserStateService UserStateService
+@using System.Text.Json
+
+<h3>@formModel.Name</h3>
+<p>回答者：@UserStateService.Username</p>
+<p>回答日：@DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")</p>
+
+@if(formModel.Description != null)
+{
+    <p>@((MarkupString)formModel.Description)</p>
+})
+
+<DxFormLayout CssClass="w-100 mb-12">
+
+    @foreach (var group in formFields.GroupBy(f => f.Name))
+    {
+        <DxFormLayoutGroup ColSpanMd="12" Caption="@(string.IsNullOrWhiteSpace(group.Key) ? "その他" : group.Key)">
+            @foreach (var field in group)
+            {
+                var submissionField = formSubmissionFields.FirstOrDefault(f => f.FieldId == field.Id);
+
+                @if(submissionField == null)
+                {
+                    continue;
+                }
+
+                <DxFormLayoutItem ColSpanMd="12" Caption="@field.Label">
+                    @if (field.FieldType == "テキスト")
+                    {
+                        <DxTextBox @bind-Value="submissionField.StringValue" />
+                    }
+                    else if (field.FieldType == "長文")
+                    {
+                        <DxMemo @bind-Value="submissionField.StringValue" Rows="3"/>
+
+                    }
+                    else if (field.FieldType == "数値")
+                    {
+                        <DxSpinEdit @bind-Value="submissionField.IntValue" InputMode="Integer" />
+                    }
+                    else if (field.FieldType == "日付")
+                    {
+                        <DxDateEdit T="DateTime?" @bind-Value="submissionField.DateValue" />
+                    }
+                    else if (field.FieldType == "時刻")
+                    {
+                        <DxDateEdit T="DateTime?"
+                                    @bind-Value="submissionField.DateValue"
+                                    TimeSectionVisible="true" />
+                    }
+                    else if (field.FieldType == "選択形式")
+                    {
+                        <DxComboBox Data="@field.Options"
+                                    @bind-Value="submissionField.StringValue" />
+                    }
+                </DxFormLayoutItem>
+            }
+        </DxFormLayoutGroup>
+    }
+
+    <DxFormLayoutItem ColSpanMd="12">
+        <DxButton CssClass="w-100" RenderStyle="ButtonRenderStyle.Primary"
+                  RenderStyleMode="ButtonRenderStyleMode.Outline"
+                  Text="送信" Click="EventCallback.Factory.Create(this, async () => await SubmitForm())" />
+    </DxFormLayoutItem>
+
+</DxFormLayout>
+
+
+
+@code {
+    [Parameter] public int formId { get; set; }
+
+    private FormModel formModel = new();
+    private List<FormField> formFields = new();
+    private FormSubmission formSubmission = new();
+    private List<FormSubmissionField> formSubmissionFields = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var form = await FormService.GetFormByIdAsync(formId);
+        if (form != null)
+        {
+            formModel = new FormModel
+                {
+                    Name = form.Name,
+                    Description = form.Description
+                };
+
+            formFields = form.FormFields.Select(f => new FormField
+                {
+                    Id = f.Id,
+                    Name = f.Name,
+                    Label = f.Label,
+                    FieldType = f.FieldType,
+                    IsRequired = f.IsRequired,
+                    Options = f.Options
+                }).ToList();
+
+            formSubmission = new FormSubmission
+                {
+                    FormId = formId,
+                    SubmittedAt = DateTime.UtcNow
+                };
+
+            foreach (var field in formFields)
+            {
+                formSubmissionFields.Add(new FormSubmissionField
+                    {
+                        FieldId = field.Id
+                    });
+            }
+
+        }
+    }
+
+    private async Task SubmitForm()
+    {
+        var submission = new FormSubmission
+            {
+                FormId = formId,
+                SubmittedAt = DateTime.UtcNow,
+
+            };
+
+        try
+        {
+            await FormService.SubmitFormAsync(submission);
+            NavigationManager.NavigateTo("/form-list");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"エラー: {ex.Message}");
+        }
+    }
+
+}

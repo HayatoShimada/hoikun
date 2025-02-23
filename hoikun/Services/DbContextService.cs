@@ -2,6 +2,7 @@
 using hoikun.Models;
 
 using Microsoft.EntityFrameworkCore;
+
 using System.Data;
 using System.Text.Json;
 
@@ -263,15 +264,21 @@ public class DbContextService : IDbContextService
         return await query.ToListAsync();
     }
 
-    public async Task<List<User>> GetUserAsync(string? role)
+    public async Task<List<User>?> GetUserAsync(string? role)
     {
         IQueryable<User> query = _dbContext.Users;
 
         if (role != null)
         {
-            query = query.Where(q =>  q.Role == role);
+            query = query.Where(q => q.Role == role);
         }
 
         return await query.ToListAsync();
+    }
+
+    public async Task SubmitFormAsync(FormSubmission submission)
+    {
+        _dbContext.FormSubmissions.Add(submission);
+        await _dbContext.SaveChangesAsync();
     }
 }

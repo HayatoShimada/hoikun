@@ -442,15 +442,28 @@ namespace hoikun.Data
         public string? OptionsJson { get; set; }
 
         [NotMapped]
-        public List<string>? Options
+        public List<string> Options
         {
-            get => OptionsJson == null
-                ? null
-                : JsonSerializer.Deserialize<List<string>>(OptionsJson);
-            set => OptionsJson = value == null
-                ? null
-                : JsonSerializer.Serialize(value);
+            get
+            {
+                if (string.IsNullOrWhiteSpace(OptionsJson))
+                {
+                    return new List<string>(); // `null` の場合は空リストを返す
+                }
+
+                try
+                {
+                    return JsonSerializer.Deserialize<List<string>>(OptionsJson) ?? new List<string>();
+                }
+                catch (JsonException ex)
+                {
+                    Console.WriteLine($"JSON パースエラー: {ex.Message}"); // デバッグ用ログ
+                    return new List<string>(); // エラー発生時も空リストを返す
+                }
+            }
+            set => OptionsJson = JsonSerializer.Serialize(value ?? new List<string>());
         }
+
 
         public virtual Form Form { get; set; } = null!;
     }
@@ -472,7 +485,11 @@ namespace hoikun.Data
         public int Id { get; set; }
         public int SubmissionId { get; set; }
         public int FieldId { get; set; }
-        public string Value { get; set; } = string.Empty;
+        public string? StringValue { get; set; }
+
+        public int? IntValue { get; set; }
+
+        public DateTime? DateValue { get; set; }
 
         public virtual FormSubmission FormSubmission { get; set; } = null!;
         public virtual FormField FormField { get; set; } = null!;
