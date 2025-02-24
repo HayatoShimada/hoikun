@@ -281,4 +281,37 @@ public class DbContextService : IDbContextService
         _dbContext.FormSubmissions.Add(submission);
         await _dbContext.SaveChangesAsync();
     }
+
+    public async Task SubmitFormFieldsAsync(List<FormSubmissionField> formSubmissionFields)
+    {
+        if (formSubmissionFields == null || !formSubmissionFields.Any())
+        {
+            throw new ArgumentException("フォーム送信フィールドが存在しません。", nameof(formSubmissionFields));
+        }
+
+        _dbContext.FormSubmissionFields.AddRange(formSubmissionFields);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<FormSubmission?> GetSubmissionAsync(int formId, int userId, int childrenId)
+    {
+        return await _dbContext.FormSubmissions
+            .Include(fs => fs.FormSubmissionFields)  // 回答フィールドも読み込む場合
+            .FirstOrDefaultAsync(fs => fs.FormId == formId && fs.UserId == userId && fs.ChildrenId == childrenId);
+    }
+
+    public async Task UpdateSubmissionAsync(FormSubmission submission)
+    {
+        // 既存のレコードを取得
+        FormSubmission? existingSubmission = await _dbContext.FormSubmissions.FindAsync(submission.Id);
+        if (existingSubmission == null)
+        {
+            throw new KeyNotFoundException($"FormSubmission with Id {submission.Id} not found.");
+        }
+
+        // エンティティの値を更新
+        _dbContext.Entry(existingSubmission).CurrentValues.SetValues(submission);
+        await _dbContext.SaveChangesAsync();
+    }
+
 }

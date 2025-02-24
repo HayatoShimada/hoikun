@@ -1,31 +1,41 @@
-﻿@page "/answer-form/{formId:int}"
+﻿@page "/answer-form/{formId:int}/{userId:int}/{childrenId:int}"
 @inject IDbContextService FormService
 @inject NavigationManager NavigationManager
 @inject UserStateService UserStateService
 @using System.Text.Json
 
+@if (userId != UserStateService.ModelId)
+{
+    <p>アクセス権限がありません</p>
+    return;
+}
+
 <h3>@formModel.Name</h3>
 <p>回答者：@UserStateService.Username</p>
-<p>回答日：@DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")</p>
+<p>回答日：@formSubmission.SubmittedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss") ?? DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")</p>
 
-@if(formModel.Description != null)
+@if (childrenId != 0)
+{
+    <p>対象児：@childrenId</p>
+}
+else
+{
+    <p>対象児：未選択</p>
+}
+
+@if (formModel.Description != null)
 {
     <p>@((MarkupString)formModel.Description)</p>
-})
+}
 
 <DxFormLayout CssClass="w-100 mb-12">
-
     @foreach (var group in formFields.GroupBy(f => f.Name))
     {
         <DxFormLayoutGroup ColSpanMd="12" Caption="@(string.IsNullOrWhiteSpace(group.Key) ? "その他" : group.Key)">
             @foreach (var field in group)
             {
                 var submissionField = formSubmissionFields.FirstOrDefault(f => f.FieldId == field.Id);
-
-                @if(submissionField == null)
-                {
-                    continue;
-                }
+                if (submissionField == null) { continue; }
 
                 <DxFormLayoutItem ColSpanMd="12" Caption="@field.Label">
                     @if (field.FieldType == "テキスト")
@@ -34,8 +44,7 @@
                     }
                     else if (field.FieldType == "長文")
                     {
-                        <DxMemo @bind-Value="submissionField.StringValue" Rows="3"/>
-
+                        <DxMemo @bind-Value="submissionField.StringValue" Rows="3" />
                     }
                     else if (field.FieldType == "数値")
                     {
@@ -47,14 +56,11 @@
                     }
                     else if (field.FieldType == "時刻")
                     {
-                        <DxDateEdit T="DateTime?"
-                                    @bind-Value="submissionField.DateValue"
-                                    TimeSectionVisible="true" />
+                        <DxDateEdit T="DateTime?" @bind-Value="submissionField.DateValue" TimeSectionVisible="true" />
                     }
                     else if (field.FieldType == "選択形式")
                     {
-                        <DxComboBox Data="@field.Options"
-                                    @bind-Value="submissionField.StringValue" />
+                        <DxComboBox Data="@field.Options" @bind-Value="submissionField.StringValue" />
                     }
                 </DxFormLayoutItem>
             }
@@ -62,22 +68,26 @@
     }
 
     <DxFormLayoutItem ColSpanMd="12">
+        <!-- 既存の回答がある場合は「更新」、ない場合は「送信」 -->
         <DxButton CssClass="w-100" RenderStyle="ButtonRenderStyle.Primary"
                   RenderStyleMode="ButtonRenderStyleMode.Outline"
-                  Text="送信" Click="EventCallback.Factory.Create(this, async () => await SubmitForm())" />
+                  Text="@(formSubmission.Id > 0 ? "更新" : "送信")"
+                  Click="EventCallback.Factory.Create(this, async () => await SubmitForm())" />
     </DxFormLayoutItem>
-
 </DxFormLayout>
-
-
 
 @code {
     [Parameter] public int formId { get; set; }
+    [Parameter] public int userId { get; set; }
+    [Parameter] public int childrenId { get; set; }
 
     private FormModel formModel = new();
     private List<FormField> formFields = new();
     private FormSubmission formSubmission = new();
     private List<FormSubmissionField> formSubmissionFields = new();
+
+    // フォーム種別（例として利用）
+    private IEnumerable<string> FormTypes = new List<string> { "毎年", "毎月", "毎週", "毎日", "1回限り", "無制限" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -87,7 +97,8 @@
             formModel = new FormModel
                 {
                     Name = form.Name,
-                    Description = form.Description
+                    Description = form.Description,
+                    FormType = form.FormType  // 例："1回限り"など
                 };
 
             formFields = form.FormFields.Select(f => new FormField
@@ -100,35 +111,68 @@
                     Options = f.Options
                 }).ToList();
 
-            formSubmission = new FormSubmission
-                {
-                    FormId = formId,
-                    SubmittedAt = DateTime.UtcNow
-                };
-
-            foreach (var field in formFields)
+            // 既存の回答があるかチェック（サービス側で実装）
+            var existingSubmission = await FormService.GetSubmissionAsync(formId, UserStateService.ModelId, childrenId);
+            if (existingSubmission != null)
             {
-                formSubmissionFields.Add(new FormSubmissionField
-                    {
-                        FieldId = field.Id
-                    });
+                // 回答済みの場合は、既存の回答内容を利用する
+                formSubmission = existingSubmission;
+                formSubmissionFields = await FormService.GetSubmissionFieldsAsync(existingSubmission.Id);
             }
+            else
+            {
+                // 未回答の場合は、新規に回答用オブジェクトを生成
+                formSubmission = new FormSubmission
+                    {
+                        FormId = formId,
+                        SubmittedAt = DateTime.UtcNow,
+                        UserId = (int)UserStateService.ModelId
+                    };
 
+                foreach (var field in formFields)
+                {
+                    formSubmissionFields.Add(new FormSubmissionField
+                        {
+                            FieldId = field.Id
+                        });
+                }
+            }
         }
     }
 
     private async Task SubmitForm()
     {
-        var submission = new FormSubmission
-            {
-                FormId = formId,
-                SubmittedAt = DateTime.UtcNow,
+        // 入力チェック（必要に応じて各フィールドの必須チェックを追加）
+        if (formSubmissionFields.Any(f => f.StringValue == null && f.IntValue == null && f.DateValue == null)
+            || !UserStateService.ModelId.HasValue)
+        {
+            Console.WriteLine("未入力の項目があります");
+            return;
+        }
 
-            };
+        // 回答済みなら更新、未回答なら新規登録
+        formSubmission.SubmittedAt = DateTime.UtcNow;  // 回答日時の更新
 
         try
         {
-            await FormService.SubmitFormAsync(submission);
+            if (formSubmission.Id > 0)
+            {
+                // 既存回答の更新処理（サービス側に UpdateSubmissionAsync メソッドを用意）
+                await FormService.UpdateSubmissionAsync(formSubmission);
+            }
+            else
+            {
+                // 新規回答の登録
+                await FormService.SubmitFormAsync(formSubmission);
+            }
+
+            var submissionId = formSubmission.Id;
+            foreach (var field in formSubmissionFields)
+            {
+                field.SubmissionId = submissionId;
+            }
+
+            await FormService.SubmitFormFieldsAsync(formSubmissionFields);
             NavigationManager.NavigateTo("/form-list");
         }
         catch (Exception ex)
@@ -136,5 +180,4 @@
             Console.WriteLine($"エラー: {ex.Message}");
         }
     }
-
 }

@@ -15,6 +15,11 @@
             <DxFormLayoutItem Caption="説明" ColSpanMd="12" Context="formItemContext">
                 <DxHtmlEditor Height="500px" @bind-Markup="formModel.Description" />
             </DxFormLayoutItem>
+            <DxFormLayoutItem Caption="回答回数" ColSpanMd="12" Context="formItemContext">
+                <DxComboBox Data="@FormTypes" @bind-Value="formModel" InputId="cbOccupation" />
+
+            </DxFormLayoutItem>
+
         </DxFormLayoutGroup>
 
         @foreach (var field in formFields)
@@ -77,6 +82,8 @@
     private FormModel formModel = new FormModel();
     private List<FormFieldModel> formFields = new();
     private IEnumerable<string> FieldTypes = new List<string> { "テキスト","長文", "数値", "日付", "時刻", "日時", "選択形式" };
+    private IEnumerable<string> FormTypes = new List<string> {"毎年", "毎月", "毎週", "毎日", "1回限り", "無制限"};
+
 
     protected override async Task OnInitializedAsync()
     {

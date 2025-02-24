@@ -422,7 +422,8 @@ namespace hoikun.Data
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public DateTime CreatedAt { get; set; }
-
+        public string? Category { get; set; }
+        public string FormType { get; set; } = string.Empty;
         public virtual ICollection<FormField> FormFields { get; set; } = new List<FormField>();
     }
 
@@ -473,6 +474,8 @@ namespace hoikun.Data
     {
         public int Id { get; set; }
         public int FormId { get; set; }
+        public int UserId { get; set; }
+        public int? ChildrenId { get; set; }
         public DateTime SubmittedAt { get; set; }
 
         public virtual Form Form { get; set; } = null!;

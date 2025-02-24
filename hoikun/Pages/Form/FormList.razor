@@ -67,7 +67,7 @@
     private void EditFormAnswerClick(int formId)
     {
         // クエリパラメータ付きでページ遷移
-        NavigationManager.NavigateTo($"/answer-form/{formId}");
+        NavigationManager.NavigateTo($"/answer-form/{formId}/{UserStateService.ModelId}/0");
     }
 
 }
