@@ -203,6 +203,9 @@ namespace hoikun.Data
         public int UserId { get; set; }
         public string AADB2CUserId { get; set; } = string.Empty;
         public string Name { get; set; } = string.Empty;
+
+        public string? LineId { get; set; }
+
         public string? PostalCode { get; set; }
         public string? State { get; set; }
         public string? City { get; set; }

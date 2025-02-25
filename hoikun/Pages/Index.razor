@@ -5,9 +5,30 @@
 @inject ApplicationDbContext dbContext
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject UserStateService UserStateService
+@inject IDbContextService dbContextService
+@inject NavigationManager Navigation
 
+<button @onclick="RedirectToLineLogin">Login with LINE</button>
+
+@if (children != null && children.Count == 0)
+{
+    <p>児童情報がありません</p>
+    <p>@children</p>
+    <p>@userId</p>
+
+    return;
+}
+else
+{
+    foreach (Children child in children)
+    {
+        <p>@child.Name</p>
+    }
+}
 
 <DxLayoutBreakpoint MinWidth="800" @bind-IsActive="@isMediumScreen" />
+
+
 
 <div class="h-100 overflow-auto p-2">
     <DxGridLayout CssClass="h-100" ColumnSpacing="16px" RowSpacing="16px">
@@ -92,6 +113,32 @@
 
 @code {
     bool isMediumScreen = false;
+    int? userId;
+    List<Children>? children = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        userId = UserStateService.ModelId;
+        children = await dbContextService.GetChildrenAsync(query => query.Where(c => c.UserId == userId));
+
+    }
+
+    private string clientId = "2006662452"; // LINE Developersで取得したチャネルID
+    private string redirectUri = "https://localhost:5000/auth/callback"; // コールバックURL
+    private string state = Guid.NewGuid().ToString(); // CSRF対策用のランダム文字列
+
+
+    private void RedirectToLineLogin()
+    {
+        var authUrl = $"https://access.line.me/oauth2/v2.1/authorize" +
+                      $"?response_type=code" +
+                      $"&client_id={clientId}" +
+                      $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
+                      $"&state={state}" +
+                      $"&scope=profile%20openid%20email";
+
+        Navigation.NavigateTo(authUrl, forceLoad: true);
+    }
 
     // ここで 9 個のメニューアイテムを定義
     private List<MenuItem> menuItems = new()
@@ -289,11 +336,11 @@
 
     public class MenuItem
     {
-        public string Area { get; set; }        // レイアウトの "Area" 名
-        public string Link { get; set; }        // NavLinkで飛ぶ先
-        public string IconPath { get; set; }    // 画像パス
-        public string AltText { get; set; }     // 画像の alt 属性
-        public string DisplayText { get; set; } // 表示するテキスト
+        public string Area { get; set; } = string.Empty;        // レイアウトの "Area" 名
+        public string Link { get; set; } = string.Empty;        // NavLinkで飛ぶ先
+        public string IconPath { get; set; } = string.Empty;    // 画像パス
+        public string AltText { get; set; } = string.Empty;     // 画像の alt 属性
+        public string DisplayText { get; set; } = string.Empty; // 表示するテキスト
     }
 
 

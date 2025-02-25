@@ -1,10 +1,10 @@
-﻿@page "/answer-form/{formId:int}/{userId:int}/{childrenId:int}"
+﻿@page "/answer-form"
 @inject IDbContextService FormService
 @inject NavigationManager NavigationManager
 @inject UserStateService UserStateService
 @using System.Text.Json
 
-@if (userId != UserStateService.ModelId)
+@if (UserId != UserStateService.ModelId)
 {
     <p>アクセス権限がありません</p>
     return;
@@ -12,11 +12,11 @@
 
 <h3>@formModel.Name</h3>
 <p>回答者：@UserStateService.Username</p>
-<p>回答日：@formSubmission.SubmittedAt?.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss") ?? DateTime.Now.ToString("yyyy/MM/dd HH:mm:ss")</p>
+<p>回答日：@((formSubmission.SubmittedAt.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss")))</p>
 
-@if (childrenId != 0)
+@if (ChildrenId != 0)
 {
-    <p>対象児：@childrenId</p>
+    <p>対象児：@ChildrenId</p>
 }
 else
 {
@@ -77,21 +77,34 @@ else
 </DxFormLayout>
 
 @code {
-    [Parameter] public int formId { get; set; }
-    [Parameter] public int userId { get; set; }
-    [Parameter] public int childrenId { get; set; }
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int FormId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? UserId { get; set; }
+
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public int? ChildrenId { get; set; }
 
     private FormModel formModel = new();
     private List<FormField> formFields = new();
     private FormSubmission formSubmission = new();
     private List<FormSubmissionField> formSubmissionFields = new();
 
+    public FormAnswer(List<FormSubmissionField> formSubmissionFields)
+    {
+        this.formSubmissionFields = formSubmissionFields;
+    }
+
     // フォーム種別（例として利用）
     private IEnumerable<string> FormTypes = new List<string> { "毎年", "毎月", "毎週", "毎日", "1回限り", "無制限" };
 
     protected override async Task OnInitializedAsync()
     {
-        var form = await FormService.GetFormByIdAsync(formId);
+        var form = await FormService.GetFormByIdAsync(FormId);
         if (form != null)
         {
             formModel = new FormModel
@@ -112,21 +125,25 @@ else
                 }).ToList();
 
             // 既存の回答があるかチェック（サービス側で実装）
-            var existingSubmission = await FormService.GetSubmissionAsync(formId, UserStateService.ModelId, childrenId);
+            var modelId = UserStateService.ModelId ?? 0;
+            var childrenId = ChildrenId ?? 0;
+            var existingSubmission = await FormService.GetSubmissionAsync(FormId, modelId, childrenId);
+
             if (existingSubmission != null)
             {
                 // 回答済みの場合は、既存の回答内容を利用する
                 formSubmission = existingSubmission;
-                formSubmissionFields = await FormService.GetSubmissionFieldsAsync(existingSubmission.Id);
+                formSubmissionFields = await FormService.GetSubmissionFieldsAsync(existingSubmission.Id) ?? new List<FormSubmissionField>();
+
             }
             else
             {
                 // 未回答の場合は、新規に回答用オブジェクトを生成
                 formSubmission = new FormSubmission
                     {
-                        FormId = formId,
+                        FormId = FormId,
                         SubmittedAt = DateTime.UtcNow,
-                        UserId = (int)UserStateService.ModelId
+                        UserId = modelId
                     };
 
                 foreach (var field in formFields)

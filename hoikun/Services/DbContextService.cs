@@ -111,7 +111,7 @@ public class DbContextService : IDbContextService
     // 並び替え　var sortedClasses = await GetClassesAsync(query => query.OrderBy(c => c.Name));
     // 複数条件　var filteredAndSortedClasses = await GetClassesAsync(query => query.Where(c => c.IsActive).OrderBy(c => c.Name));
 
-    public async Task<List<Children>> GetChildrensAsync(Func<IQueryable<Children>, IQueryable<Children>> queryModifier)
+    public async Task<List<Children>> GetChildrenAsync(Func<IQueryable<Children>, IQueryable<Children>> queryModifier)
     {
         try
         {
@@ -215,35 +215,37 @@ public class DbContextService : IDbContextService
                 .Include(f => f.FormFields) // 関連データを含める
                 .FirstOrDefaultAsync(f => f.Id == formId);
 
-            if (form == null)
+            if (form != null)
+            {
+                // フォームのプロパティを更新
+                form.Name = formModel.Name;
+                form.Description = formModel.Description;
+
+                // フィールドを更新
+                form.FormFields.Clear(); // 既存のフィールドをクリア
+                foreach (FormFieldModel fieldModel in formFields)
+                {
+                    FormField newField = new()
+                    {
+                        Name = fieldModel.Name,
+                        Label = fieldModel.Label,
+                        Caption = fieldModel.Caption,
+                        FieldType = fieldModel.FieldType,
+                        IsRequired = fieldModel.IsRequired,
+                        OptionsJson = fieldModel.OptionList != null && fieldModel.OptionList.Any()
+                    ? JsonSerializer.Serialize(fieldModel.OptionList.Select(opt => opt.Option))
+                    : null // OptionListが空の場合はnullを保存
+                    };
+                    form.FormFields.Add(newField);
+                }
+
+                // 変更を保存
+                await _dbContext.SaveChangesAsync();
+            }
+            else
             {
                 throw new Exception($"Form with ID {formId} not found.");
             }
-
-            // フォームのプロパティを更新
-            form.Name = formModel.Name;
-            form.Description = formModel.Description;
-
-            // フィールドを更新
-            form.FormFields.Clear(); // 既存のフィールドをクリア
-            foreach (FormFieldModel fieldModel in formFields)
-            {
-                FormField newField = new()
-                {
-                    Name = fieldModel.Name,
-                    Label = fieldModel.Label,
-                    Caption = fieldModel.Caption,
-                    FieldType = fieldModel.FieldType,
-                    IsRequired = fieldModel.IsRequired,
-                    OptionsJson = fieldModel.OptionList != null && fieldModel.OptionList.Any()
-                ? JsonSerializer.Serialize(fieldModel.OptionList.Select(opt => opt.Option))
-                : null // OptionListが空の場合はnullを保存
-                };
-                form.FormFields.Add(newField);
-            }
-
-            // 変更を保存
-            await _dbContext.SaveChangesAsync();
         }
         catch (Exception ex)
         {
@@ -276,6 +278,22 @@ public class DbContextService : IDbContextService
         return await query.ToListAsync();
     }
 
+    public async Task UpdateUserAsync(Func<IQueryable<User>, IQueryable<User>> queryModifier)
+    {
+        IQueryable<User> query = _dbContext.Users.AsQueryable();
+        List<User> usersToUpdate = await queryModifier(query).ToListAsync();
+
+        if (usersToUpdate.Any())
+        {
+            foreach (User? user in usersToUpdate)
+            {
+                user.LineId = "UPDATE_VALUE"; // ここで `LineId` を更新
+            }
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+
     public async Task SubmitFormAsync(FormSubmission submission)
     {
         _dbContext.FormSubmissions.Add(submission);
@@ -298,6 +316,12 @@ public class DbContextService : IDbContextService
         return await _dbContext.FormSubmissions
             .Include(fs => fs.FormSubmissionFields)  // 回答フィールドも読み込む場合
             .FirstOrDefaultAsync(fs => fs.FormId == formId && fs.UserId == userId && fs.ChildrenId == childrenId);
+    }
+
+    public async Task<List<FormSubmissionField>?> GetSubmissionFieldsAsync(int submissionId)
+    {
+        return await _dbContext.FormSubmissionFields
+            .Where(fs => fs.SubmissionId == submissionId).ToListAsync();
     }
 
     public async Task UpdateSubmissionAsync(FormSubmission submission)

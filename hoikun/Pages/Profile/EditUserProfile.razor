@@ -1,0 +1,103 @@
+﻿@page "/edit-profile"
+@inject IDbContextService DbContextService
+@inject NavigationManager Navigation
+
+<h3>ユーザープロフィールの編集</h3>
+
+@if (user == null)
+{
+    <p>Loading...</p>
+}
+else
+{
+    <EditForm Model="@user" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+
+        <DxFormLayout>
+            <DxFormLayoutItem ColSpanMd="12">
+                <label for="tbName">名前</label>
+                <DxTextBox @bind-Text="@user.Name"
+                           NullText="ユーザーの名前を入力"
+                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                           InputId="tbName" />
+            </DxFormLayoutItem>
+
+            <DxFormLayoutItem ColSpanMd="12">
+                <label for="tbEmail">メールアドレス</label>
+                <DxTextBox @bind-Text="@user.Email"
+                           NullText="メールアドレスを入力"
+                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                           InputId="tbEmail" />
+            </DxFormLayoutItem>
+
+            <DxFormLayoutItem ColSpanMd="12">
+                <label for="tbPostalCode">郵便番号</label>
+                <DxTextBox @bind-Text="@user.PostalCode"
+                           NullText="郵便番号を入力"
+                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                           InputId="tbPostalCode" />
+            </DxFormLayoutItem>
+
+            <DxFormLayoutItem ColSpanMd="12">
+                <label for="tbAddress">住所</label>
+                <DxTextBox @bind-Text="@user.State"
+                           NullText="都道府県"
+                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                           InputId="tbState" />
+                <DxTextBox @bind-Text="@user.City"
+                           NullText="市区町村"
+                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                           InputId="tbCity" />
+                <DxTextBox @bind-Text="@user.Street"
+                           NullText="丁目・番地・建物名"
+                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                           InputId="tbStreet" />
+            </DxFormLayoutItem>
+
+            <DxFormLayoutItem ColSpanMd="12">
+                <DxButton CssClass="w-100"
+                          RenderStyle="ButtonRenderStyle.Success"
+                          SubmitFormOnClick="true"
+                          Text="保存" />
+            </DxFormLayoutItem>
+        </DxFormLayout>
+    </EditForm>
+}
+
+<p>@FormSubmitResult</p>
+
+@code {
+    private User? user;
+    private string FormSubmitResult = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // 例: ログイン中のユーザーIDを取得（認証機能に応じて適宜変更）
+        int? userId = UserStateService.ModelId;
+
+        if (userId == null)
+        {
+            return;
+        }
+
+        var users = await DbContextService.GetUserAsync(null);
+        user = users?.FirstOrDefault(u => u.UserId == userId);
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            if (user != null)
+            {
+                await DbContextService.UpdateUserAsync(users => users.Where(u => u.UserId == user.UserId));
+                FormSubmitResult = "プロフィールを更新しました。";
+                Navigation.NavigateTo("/user-profile"); // プロフィールページにリダイレクト
+            }
+        }
+        catch (Exception ex)
+        {
+            FormSubmitResult = $"エラーが発生しました。 {ex.Message}";
+        }
+    }
+}

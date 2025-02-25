@@ -8,6 +8,7 @@ public interface IDbContextService
 
     Task<List<User>?> GetUserAsync(string? role);
 
+    Task UpdateUserAsync(Func<IQueryable<User>, IQueryable<User>> queryModifier);
 
     Task AddClassTeacherAsync(ClassTeacher classTeacher);
     Task UpdateClassTeacherAsync(ClassTeacher classTeacher);
@@ -21,7 +22,7 @@ public interface IDbContextService
     Task DeleteClassAsync(int classId);
 
     // Children の取得
-    Task<List<Children>> GetChildrensAsync(Func<IQueryable<Children>, IQueryable<Children>> queryModifier);
+    Task<List<Children>> GetChildrenAsync(Func<IQueryable<Children>, IQueryable<Children>> queryModifier);
 
     // Children を更新
     Task UpdateChildrenAsync(int childrenId, Children updatedChild);
@@ -55,6 +56,9 @@ public interface IDbContextService
 
     // Form回答の取得
     Task<FormSubmission?> GetSubmissionAsync(int formId, int userId, int childrenId);
+
+    Task<List<FormSubmissionField>?> GetSubmissionFieldsAsync(int submissionId);
+
 
     // Form回答の更新
     Task UpdateSubmissionAsync(FormSubmission submission);
