@@ -1,4 +1,4 @@
-﻿@page "/edit-profile"
+﻿@page "/edit-user-profile"
 @inject IDbContextService DbContextService
 @inject NavigationManager Navigation
 
@@ -14,53 +14,69 @@ else
         <DataAnnotationsValidator />
 
         <DxFormLayout>
-            <DxFormLayoutItem ColSpanMd="12">
-                <label for="tbName">名前</label>
-                <DxTextBox @bind-Text="@user.Name"
-                           NullText="ユーザーの名前を入力"
-                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                           InputId="tbName" />
+            <DxFormLayoutItem ColSpanMd="12" Context="layoutContext">
+                <ChildContent>
+                    <label for="tbName">名前</label>
+                    <DxTextBox @bind-Text="@user.Name"
+                               NullText="ユーザーの名前を入力"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbName" />
+                </ChildContent>
             </DxFormLayoutItem>
 
-            <DxFormLayoutItem ColSpanMd="12">
-                <label for="tbEmail">メールアドレス</label>
-                <DxTextBox @bind-Text="@user.Email"
-                           NullText="メールアドレスを入力"
-                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                           InputId="tbEmail" />
+            <DxFormLayoutItem ColSpanMd="12" Context="layoutContext">
+                <ChildContent>
+                    <label for="tbEmail">メールアドレス</label>
+                    <DxTextBox @bind-Text="@user.Email"
+                               NullText="メールアドレスを入力"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbEmail" />
+                </ChildContent>
             </DxFormLayoutItem>
 
-            <DxFormLayoutItem ColSpanMd="12">
-                <label for="tbPostalCode">郵便番号</label>
-                <DxTextBox @bind-Text="@user.PostalCode"
-                           NullText="郵便番号を入力"
-                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                           InputId="tbPostalCode" />
+            <DxFormLayoutItem ColSpanMd="12" Context="layoutContext">
+                <ChildContent>
+                    <label for="tbPostalCode">郵便番号</label>
+                    <DxTextBox @bind-Text="@user.PostalCode"
+                               NullText="郵便番号を入力"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbPostalCode" />
+                </ChildContent>
             </DxFormLayoutItem>
 
-            <DxFormLayoutItem ColSpanMd="12">
-                <label for="tbAddress">住所</label>
-                <DxTextBox @bind-Text="@user.State"
-                           NullText="都道府県"
-                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                           InputId="tbState" />
-                <DxTextBox @bind-Text="@user.City"
-                           NullText="市区町村"
-                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                           InputId="tbCity" />
-                <DxTextBox @bind-Text="@user.Street"
-                           NullText="丁目・番地・建物名"
-                           ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
-                           InputId="tbStreet" />
+            <DxFormLayoutItem ColSpanMd="12" Context="layoutContext">
+                <ChildContent>
+                    <label for="tbAddress">住所</label>
+                    <DxTextBox @bind-Text="@user.PostalCode"
+                               NullText="郵便番号"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbState" />
+
+                    <DxTextBox @bind-Text="@user.State"
+                               NullText="都道府県"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbState" />
+                    <DxTextBox @bind-Text="@user.City"
+                               NullText="市区町村"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbCity" />
+                    <DxTextBox @bind-Text="@user.Street"
+                               NullText="丁目・番地・建物名"
+                               ClearButtonDisplayMode="DataEditorClearButtonDisplayMode.Auto"
+                               InputId="tbStreet" />
+                </ChildContent>
             </DxFormLayoutItem>
 
-            <DxFormLayoutItem ColSpanMd="12">
-                <DxButton CssClass="w-100"
-                          RenderStyle="ButtonRenderStyle.Success"
-                          SubmitFormOnClick="true"
-                          Text="保存" />
+            <DxFormLayoutItem ColSpanMd="12" Context="layoutContext">
+                <ChildContent>
+                    <DxButton CssClass="w-100"
+                              RenderStyle="ButtonRenderStyle.Success"
+                              SubmitFormOnClick="true"
+                              Text="保存" />
+                </ChildContent>
             </DxFormLayoutItem>
         </DxFormLayout>
+
     </EditForm>
 }
 

@@ -69,11 +69,11 @@
     {
         if (SelectedClass != null)
         {
-            children = await dbContextService.GetChildrensAsync(query => query.Where(c => c.Id == SelectedClass.Id));
+            children = await dbContextService.GetChildrenAsync(query => query.Where(c => c.Id == SelectedClass.Id));
         }
         else
         {
-            children = await dbContextService.GetChildrensAsync(query => query);
+            children = await dbContextService.GetChildrenAsync(query => query);
 
         }
         StateHasChanged(); // UIを更新
