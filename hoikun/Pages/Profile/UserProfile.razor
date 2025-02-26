@@ -23,11 +23,9 @@ else
             <p><strong>役職:</strong> @user.Role</p>
             <p><strong>更新日:</strong> @user.CreatedAt.ToString()</p>
             <p><strong>LINE ID:</strong> @(user.LineId != null ? user.LineId : "未連携")</p>
-            <button class="line-login-btn"></button>
+            <button @onclick="RedirectToLineLogin" class="line-login-btn"></button>
+
         </div>
-
-
-        
     </div>
 
     @if(children != null)
@@ -89,5 +87,21 @@ else
     protected void EditProfile()
     {
         Navigation.NavigateTo("/edit-user-profile");
+    }
+
+    private string clientId = "2006662452"; // LINE Developersで取得したチャネルID
+    private string redirectUri = "https://localhost:5000/auth/callback"; // コールバックURL
+    private string state = Guid.NewGuid().ToString(); // CSRF対策用のランダム文字列
+
+    private void RedirectToLineLogin()
+    {
+        var authUrl = $"https://access.line.me/oauth2/v2.1/authorize" +
+                      $"?response_type=code" +
+                      $"&client_id={clientId}" +
+                      $"&redirect_uri={Uri.EscapeDataString(redirectUri)}" +
+                      $"&state={state}" +
+                      $"&scope=profile%20openid%20email";
+
+        Navigation.NavigateTo(authUrl, forceLoad: true);
     }
 }

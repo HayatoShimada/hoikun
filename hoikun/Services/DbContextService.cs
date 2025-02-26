@@ -287,7 +287,7 @@ public class DbContextService : IDbContextService
         {
             foreach (User? user in usersToUpdate)
             {
-                user.LineId = "UPDATE_VALUE"; // ここで `LineId` を更新
+                user.LineId = lineId;
             }
             await _dbContext.SaveChangesAsync();
         }

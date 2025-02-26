@@ -107,8 +107,8 @@ html, body {
 }
 
 .line-login-btn {
-    width: 303px; /* 画像サイズに合わせて調整 */
-    height: 88px;
+    width: 334px; /* 画像サイズに合わせて調整 */
+    height: 64px;
     background: url('/images/btn_login_base.png') no-repeat center center;
     background-size: cover;
     border: none;

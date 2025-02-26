@@ -1,6 +1,7 @@
 ﻿namespace hoikun.Controller
 {
     using hoikun.Data; // IDbContextService のある名前空間
+    using hoikun.Services;
 
     using Microsoft.AspNetCore.Mvc;
 
@@ -10,11 +11,13 @@
     using System.Text.Json;
     using System.Threading.Tasks;
 
+
     [Route("auth")]
     public class AuthController : Controller
     {
         private readonly HttpClient _httpClient;
         private readonly IDbContextService _dbContextService;
+        private readonly UserStateService userStateService;
 
         public AuthController(HttpClient httpClient, IDbContextService dbContextService)
         {
@@ -36,7 +39,7 @@
                 { "code", code },
                 { "redirect_uri", "https://localhost:5000/auth/callback" }, // LINE Developers に登録したものと一致するように
                 { "client_id", "2006662452" },
-                { "client_secret", "YOUR_CLIENT_SECRET" }
+                { "client_secret", "411631a9659ad46f3d28421323fd4bb9" }
             };
 
             HttpResponseMessage response = await _httpClient.PostAsync("https://api.line.me/oauth2/v2.1/token",
@@ -68,13 +71,10 @@
 
             // 既存のユーザーを取得（Emailや他の識別情報を利用）
             List<User>? users = await _dbContextService.GetUserAsync(null);
-            User? existingUser = users?.FirstOrDefault(u => u.Email == "user@example.com"); // ユーザー識別方法を適宜変更
+            User? existingUser = users?.FirstOrDefault(u => u.UserId == UserStateService.ModelId); // ユーザー識別方法を適宜変更
 
             if (existingUser != null)
             {
-                // 既存のユーザーの LineId を更新
-                await _dbContextService.UpdateUserAsync(users => users
-                    .Where(u => u.UserId == existingUser.UserId));
 
                 // 更新後、DBの変更を適用
                 existingUser.LineId = userProfile.userId;
