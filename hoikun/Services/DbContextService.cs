@@ -117,7 +117,7 @@ public class DbContextService : IDbContextService
         {
             IQueryable<Children> items = _dbContext.Childrens.AsQueryable().AsNoTracking();
             IQueryable<Children> modifiedQuery = queryModifier(items);
-            return await modifiedQuery.ToListAsync();
+            return await modifiedQuery.Include(c => c.Class).ToListAsync();
         }
         catch (Exception ex)
         {

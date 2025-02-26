@@ -3,7 +3,6 @@
 @inject UserStateService UserStateService
 @inject NavigationManager Navigation
 
-<h3>現在の登録情報</h3>
 
 @if (user == null)
 {
@@ -11,34 +10,58 @@
 }
 else
 {
-    <div class="card">
-        <h4>@user.Name</h4>
-        <p><strong>Email:</strong> @user.Email</p>
-        <p><strong>LINE ID:</strong> @user.LineId</p>
-        <p><strong>役職:</strong> @user.Role</p>
-        <p><strong>更新日:</strong> @user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</p>
+    <div class="card mb-4">
+        <div class="card-header">
+            現在の登録情報
+
+        </div>
+
+        <div class="card-body">
+            <h4>@user.Name</h4>
+
+            <p><strong>Email:</strong> @user.Email</p>
+            <p><strong>役職:</strong> @user.Role</p>
+            <p><strong>更新日:</strong> @user.CreatedAt.ToString()</p>
+            <p><strong>LINE ID:</strong> @(user.LineId != null ? user.LineId : "未連携")</p>
+            <button class="line-login-btn"></button>
+        </div>
+
+
+        
     </div>
 
     @if(children != null)
     {
-        <h3>子供情報</h3>
+
+
         @foreach (var child in children)
         {
-            <div class="card">
-                <h4>@child.Name</h4>
-                <p><strong>誕生日:</strong> @child.Birthday.ToString()</p>
+            <div class="card mb-3">
+                <div class="card-header">
+                    子供情報 @child.Rank
+                </div>
+                <div class="card-body">
+                    <h4>@child.Name</h4>
+                    <p><strong>誕生日:</strong> @child.Birthday.ToString()</p>
+                    <p><strong>所属クラス:</strong> @child.Class.Name</p>
+                    <p><strong>アレルギー:</strong> @child.AllergyInfo</p>
+                    <p><strong>備考：</strong> @child.Notes</p>
+                </div>
             </div>
         }
     }
     else
     {
-        <p>子供情報がありません。</p>
+        <p class="mb-4">子供情報がありません。</p>
     }
-
-    <DxButton CssClass="w-100"
-              RenderStyle="ButtonRenderStyle.Success"
-              Click="EditProfile">
-        プロフィールを編集</DxButton>
+    <div class="mb-4">
+        <DxButton CssClass="w-100"
+                  RenderStyle="ButtonRenderStyle.Success"
+                  Click="EditProfile">
+            プロフィールを編集
+        </DxButton>
+    </div>
+   
 
 
 }

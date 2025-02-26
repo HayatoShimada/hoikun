@@ -33,12 +33,12 @@ html, body {
     z-index: 1000;
 }
 
-#blazor-error-ui .dismiss {
-    cursor: pointer;
-    position: absolute;
-    right: 0.75rem;
-    top: 0.5rem;
-}
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }
 
 .custom-drop-zone {
     padding: 0 !important;
@@ -52,18 +52,18 @@ html, body {
     background-color: rgba(183, 183, 183, 0.1);
 }
 
-.custom-drop-zone.custom-drop-zone-hover {
-    border-style: solid;
-}
+    .custom-drop-zone.custom-drop-zone-hover {
+        border-style: solid;
+    }
 
-.custom-drop-zone svg {
-    width: 42px;
-    height: 42px;
-}
+    .custom-drop-zone svg {
+        width: 42px;
+        height: 42px;
+    }
 
-.custom-drop-zone > *:not(#overviewDemoSelectButton) {
-    pointer-events: none;
-}
+    .custom-drop-zone > *:not(#overviewDemoSelectButton) {
+        pointer-events: none;
+    }
 
 #my_quagga {
     width: 320px;
@@ -105,3 +105,22 @@ html, body {
     justify-content: space-around;
     align-items: center;
 }
+
+.line-login-btn {
+    width: 303px; /* ‰æ‘œƒTƒCƒY‚É‡‚í‚¹‚Ä’²® */
+    height: 88px;
+    background: url('/images/btn_login_base.png') no-repeat center center;
+    background-size: cover;
+    border: none;
+    cursor: pointer;
+}
+
+    .line-login-btn:hover {
+        background: url('/images/btn_login_hover.png') no-repeat center center;
+        background-size: cover;
+    }
+
+    .line-login-btn:active {
+        background: url('/images/btn_login_press.png') no-repeat center center;
+        background-size: cover;
+    }
