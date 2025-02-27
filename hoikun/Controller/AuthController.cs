@@ -75,11 +75,11 @@
 
             if (existingUser != null)
             {
-
-                // 更新後、DBの変更を適用
                 existingUser.LineId = userProfile.userId;
-                await _dbContextService.UpdateUserAsync(users => users.Where(u => u.UserId == existingUser.UserId));
+                existingUser.CreatedAt = DateTime.Now;
+                await _dbContextService.UpdateOneUserAsync(existingUser);
             }
+
 
             // LINE連携成功ページへリダイレクト
             return Redirect("/auth/success");

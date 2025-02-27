@@ -10,6 +10,8 @@ public interface IDbContextService
 
     Task UpdateUserAsync(Func<IQueryable<User>, IQueryable<User>> queryModifier);
 
+    Task<bool> UpdateOneUserAsync(User user);
+
     Task AddClassTeacherAsync(ClassTeacher classTeacher);
     Task UpdateClassTeacherAsync(ClassTeacher classTeacher);
     Task DeleteClassTeacherAsync(ClassTeacher classTeacher);

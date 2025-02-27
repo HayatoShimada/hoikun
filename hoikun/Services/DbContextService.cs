@@ -285,13 +285,33 @@ public class DbContextService : IDbContextService
 
         if (usersToUpdate.Any())
         {
-            foreach (User? user in usersToUpdate)
-            {
-                user.LineId = lineId;
-            }
             await _dbContext.SaveChangesAsync();
         }
     }
+
+    public async Task<bool> UpdateOneUserAsync(User user)
+    {
+        try
+        {
+            User? existingUser = await _dbContext.Users.FindAsync(user.UserId);
+            if (existingUser == null)
+            {
+                return false; // ユーザーが見つからない場合
+            }
+
+            _dbContext.Entry(existingUser).CurrentValues.SetValues(user);
+            await _dbContext.SaveChangesAsync();
+
+            return true; // 更新成功
+        }
+        catch (Exception ex)
+        {
+            // 例外をログに記録する（ログ機能を実装している場合）
+            Console.WriteLine($"Error updating user: {ex.Message}");
+            return false; // 更新失敗
+        }
+    }
+
 
 
     public async Task SubmitFormAsync(FormSubmission submission)
