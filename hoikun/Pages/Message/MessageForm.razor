@@ -19,22 +19,10 @@
 
 @if (ReplyToMessageId == null)
 {
-    <div class="mb-3">
-        <label class="form-label">宛先</label>
-        <div>
-            @foreach (var user in availableUsers)
-            {
-                <div class="form-check">
-                    <input type="checkbox" class="form-check-input"
-                           checked="@selectedRecipients.Contains(user.UserId)"
-                           @onchange="(e) => ToggleRecipient(user.UserId, (bool)e.Value)" />
+    <UserSelection Users="@allUsers"
+                   SelectedRecipients="@selectedRecipients"
+                   SelectedRecipientsChanged="@(recipients => selectedRecipients = recipients)" />
 
-
-                    <label class="form-check-label">@user.Name</label>
-                </div>
-            }
-        </div>
-    </div>
 
     <div class="mb-3">
         <label class="form-label">メッセージカテゴリ</label>
@@ -70,23 +58,34 @@
     private MessageDto message = new();
     private List<MessageCategoryDto> categories = new();
     private List<MessageCategoryOptionsDto> availableOptions = new();
-    private List<UserDto> availableUsers = new();
-    private List<int> selectedRecipients = new();
     private Dictionary<string, string> messageOptions = new();
     private byte[] uploadedPhoto = Array.Empty<byte>();
 
+    private List<User> allUsers = new(); // すべてのユーザー（初期値）
+    private HashSet<string> selectedRoleFilters = new(); // 先生 or 親の選択状態を保持
+    private HashSet<int> selectedRecipients = new();
+
     protected override async Task OnInitializedAsync()
     {
+
+        allUsers = await MessageService.GetAllUsersAsync();
+
         if (ReplyToMessageId != null)
         {
             var originalMessage = await MessageService.GetMessageByIdAsync(ReplyToMessageId.Value);
             message.Subject = "Re: " + originalMessage.Subject;
             message.Body = "\n\n---\n" + originalMessage.Body;
+            int? userId = UserStateService.ModelId;
+
+            if (userId.HasValue)
+            {
+                bool isRead = await MessageService.ReadMessageAsync(originalMessage.Id, userId);
+
+            }
         }
         else
         {
             categories = await MessageService.GetMessageCategoriesAsync();
-            availableUsers = await MessageService.GetAllUsersAsync();
         }
     }
 
@@ -107,36 +106,42 @@
         {
             return;
         }
+
         int senderId = (int)UserStateService.ModelId;
         if (ReplyToMessageId != null)
         {
             await MessageService.SendReplyAsync(senderId, ReplyToMessageId.Value, message.Body);
-
         }
         else
-        {    
-            await MessageService.CreateMessageAsync(senderId, message, selectedRecipients, messageOptions, uploadedPhoto);
+        {
+            int messageId = await MessageService.CreateMessageAsync(senderId, message, selectedRecipients, messageOptions, uploadedPhoto);
 
+            // 送信先ユーザーの LINE ID を取得
+            List<User> recipients = await MessageService.GetUsersByIdsAsync(selectedRecipients);
+            List<string> lineIds = recipients.Where(u => !string.IsNullOrEmpty(u.LineId)).Select(u => u.LineId).ToList();
 
+            if (lineIds.Any())
+            {
+                await MessageService.SendLineMessage(lineIds, message.Subject, message.Body);
+            }
         }
-        
-       
 
-        Navigation.NavigateTo("/messages");
+        Navigation.NavigateTo("/message-list");
     }
 
-    private void ToggleRecipient(int userId, bool isChecked)
+    private void ToggleRecipient(int userId, bool? isChecked)
     {
-        if (isChecked)
+        if (isChecked == true)
         {
-            if (!selectedRecipients.Contains(userId))
-            {
-                selectedRecipients.Add(userId);
-            }
+            selectedRecipients.Add(userId);
         }
         else
         {
             selectedRecipients.Remove(userId);
         }
     }
+
+
+
+
 }

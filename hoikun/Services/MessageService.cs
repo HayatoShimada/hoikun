@@ -1,5 +1,10 @@
 ﻿using hoikun.Data;
+
 using Microsoft.EntityFrameworkCore;
+
+using System.Net.Http.Headers;
+using System.Text;
+using System.Text.Json;
 
 public class MessageService
 {
@@ -15,19 +20,31 @@ public class MessageService
     {
         return await _context.MessageRecipients
             .Include(mr => mr.Message)
-            .ThenInclude(m => m.User)
-            .Where(mr => mr.UserId == userId)
+                .ThenInclude(m => m.User)
+            .Include(mr => mr.Message)
+                .ThenInclude(m => m.MessageCategory)
+            .Where(mr => mr.UserId == userId && mr.Message != null)
             .Select(mr => new MessageDto
             {
-                Id = mr.Message.Id,
-                Subject = mr.Message.Subject,
-                Body = mr.Message.Body,
+                Id = mr.Message!.Id,
+                MessageCategory = mr.Message.MessageCategory != null
+                    ? new MessageCategoryDto
+                    {
+                        Id = mr.Message.MessageCategory.Id,
+                        Name = mr.Message.MessageCategory.Name,
+                        IsForm = mr.Message.MessageCategory.Name == "フォーム" // 「フォーム」のみtrue
+                    }
+                    : null,
+                Subject = mr.Message.Subject ?? string.Empty,
+                Body = mr.Message.Body ?? string.Empty,
                 CreatedAt = mr.Message.CreatedAt ?? DateTime.MinValue,
-                SenderName = mr.Message.User.Name,
+                SenderName = mr.Message.User != null ? mr.Message.User.Name : "Unknown",
                 IsRead = mr.IsRead
             })
             .ToListAsync();
     }
+
+
 
     // メッセージ詳細を取得
     public async Task<MessageDto> GetMessageByIdAsync(int messageId)
@@ -46,6 +63,17 @@ public class MessageService
                 CreatedAt = message.CreatedAt ?? DateTime.MinValue,
                 SenderName = message.User.Name
             };
+    }
+
+    public async Task<bool> ReadMessageAsync(int messageId, int? UserId)
+    {
+        MessageRecipients? messageRecipient = await _context.MessageRecipients
+            .FirstOrDefaultAsync(mr => mr.MessageId == messageId && mr.UserId == UserId);
+
+        if (messageRecipient == null) return false;
+        messageRecipient.IsRead = true;
+        await _context.SaveChangesAsync();
+        return true;
     }
 
     // 返信メッセージを送信
@@ -67,15 +95,58 @@ public class MessageService
         await _context.SaveChangesAsync();
     }
 
-    public async Task<List<UserDto>> GetAllUsersAsync()
+    public async Task<List<User>> GetAllUsersAsync()
     {
         return await _context.Users
-            .Select(u => new UserDto { UserId = u.UserId, Name = u.Name })
+            .ToListAsync();
+    }
+    public async Task<List<User>> GetUsersByIdsAsync(IEnumerable<int> userIds)
+    {
+        return await _context.Users
+            .Where(u => userIds.Contains(u.UserId))
             .ToListAsync();
     }
 
+    public async Task SendLineMessage(List<string> lineIds, string subject, string body)
+    {
+        string channelAccessToken = "MyIzgYlUxnOMFYAMpMEMzUAUAc/8plIUqtdgrUpBap6sCc+0ApcHgNj+XoVthw0BAo0R2jdyhFrxynx3KMZDqVzTkO3K6QUx4Z7w2V/wCDWb7YoIs3ms6j/BiPAgwWnNLPscC2DUQLnK/l+J/8DMEAdB04t89/1O/w1cDnyilFU="; // LINEチャネルアクセストークン
+
+        var messages = new
+        {
+            to = (object)(lineIds.Count == 1 ? lineIds[0] : lineIds),
+            messages = new[]
+            {
+            new
+            {
+                type = "text",
+                text = $"📩 新しいメッセージが届きました\n\n件名: {subject}\n\n{body}"
+            }
+        }
+        };
+
+        string requestUrl = lineIds.Count == 1
+            ? "https://api.line.me/v2/bot/message/push"
+            : "https://api.line.me/v2/bot/message/multicast";
+
+        string jsonContent = JsonSerializer.Serialize(messages);
+        StringContent content = new(jsonContent, Encoding.UTF8);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/json");
+
+        using HttpClient client = new();
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", channelAccessToken);
+
+        HttpResponseMessage response = await client.PostAsync(requestUrl, content);
+
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"LINE メッセージ送信エラー: {await response.Content.ReadAsStringAsync()}");
+        }
+    }
+
+
+
     // メッセージを作成（新規作成 & 返信）
-    public async Task<int> CreateMessageAsync(int senderId, MessageDto messageDto, List<int> recipientIds, Dictionary<string, string> options, byte[]? photoData)
+    public async Task<int> CreateMessageAsync(int senderId, MessageDto messageDto, HashSet<int> recipientIds, Dictionary<string, string> options, byte[]? photoData)
     {
         // メッセージカテゴリが存在するかチェック
         bool categoryExists = await _context.MessageCategories
@@ -125,7 +196,7 @@ public class MessageService
     }
 
     // 宛先を保存
-    private async Task SaveMessageRecipientsAsync(int messageId, List<int> recipientIds)
+    private async Task SaveMessageRecipientsAsync(int messageId, HashSet<int> recipientIds)
     {
         List<MessageRecipients> recipients = recipientIds.Select(id => new MessageRecipients
         {
@@ -171,7 +242,10 @@ public class MessageService
 public class MessageDto
 {
     public int Id { get; set; }
+
     public int MessageCategoryId { get; set; }
+    public MessageCategoryDto? MessageCategory { get; set; } // メッセージカテゴリの詳細を含める
+
     public string Subject { get; set; } = string.Empty;
     public string Body { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -181,9 +255,13 @@ public class MessageDto
 
 
 
+
 public class MessageCategoryDto
 {
     public int Id { get; set; }
+
+    public bool IsForm { get; set; } = false;
+
     public string Name { get; set; } = string.Empty;
 }
 
@@ -195,5 +273,7 @@ public class MessageCategoryOptionsDto
 public class UserDto
 {
     public int UserId { get; set; }
+
+
     public string Name { get; set; } = string.Empty;
 }

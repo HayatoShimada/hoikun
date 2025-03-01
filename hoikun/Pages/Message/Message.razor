@@ -23,11 +23,12 @@ else
         <thead>
             <tr>
                 <th>送信者</th>
+                <th>カテゴリ</th>
+
                 <th>件名</th>
                 <th>日時</th>
                 <th>既読</th>
                 <th>返信</th>
-
             </tr>
         </thead>
         <tbody>
@@ -35,6 +36,7 @@ else
             {
                 <tr class="@(message.IsRead ? "" : "table-warning")">
                     <td>@message.SenderName</td>
+                    <td>@message.MessageCategory.Name</td>
                     <td>
                         <a href="message-detail/@message.Id">@message.Subject</a>
                     </td>

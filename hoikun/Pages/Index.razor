@@ -8,24 +8,6 @@
 @inject IDbContextService dbContextService
 @inject NavigationManager Navigation
 
-<button @onclick="RedirectToLineLogin">Login with LINE</button>
-
-@if (children != null && children.Count == 0)
-{
-    <p>児童情報がありません</p>
-    <p>@children</p>
-    <p>@userId</p>
-
-    return;
-}
-else
-{
-    foreach (Children child in children)
-    {
-        <p>@child.Name</p>
-    }
-}
-
 <DxLayoutBreakpoint MinWidth="800" @bind-IsActive="@isMediumScreen" />
 
 

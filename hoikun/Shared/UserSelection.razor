@@ -1,0 +1,126 @@
+﻿@inject MessageService MessageService
+@inject NavigationManager Navigation
+@inject UserStateService UserStateService
+@using Microsoft.AspNetCore.Components.Forms
+@using hoikun.Services
+
+<div class="mb-3">
+    <label class="form-label">宛先</label>
+    <div class="row m-0 p-0">
+        <div class="col p-0 d-flex flex-column">
+            <div class="p-1 d-flex flex-grow-1 align-items-center">
+                <DxCheckBox CssClass="w-100"
+                            @bind-Checked="@AllChecked">
+                    全員
+                </DxCheckBox>
+            </div>
+            <div class="p-1 d-flex flex-grow-1 align-items-center">
+                <DxCheckBox CssClass="w-100"
+                            @bind-Checked="@TeacherChecked">
+                    先生
+                </DxCheckBox>
+            </div>
+            <div class="p-1 d-flex flex-grow-1 align-items-center">
+                <DxCheckBox CssClass="w-100"
+                            @bind-Checked="@ParentChecked">
+                    親
+                </DxCheckBox>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        @foreach (var user in FilteredUsers)
+        {
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input"
+                       checked="@SelectedRecipients.Contains(user.UserId)"
+                       @onchange="(e) => ToggleRecipient(user.UserId, (bool?)e.Value ?? false)" />
+                <label class="form-check-label">@user.Name</label>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public List<User> Users { get; set; } = new();
+    [Parameter] public HashSet<int> SelectedRecipients { get; set; } = new();
+    [Parameter] public EventCallback<HashSet<int>> SelectedRecipientsChanged { get; set; }
+
+    private List<User> FilteredUsers { get; set; } = new();
+    private HashSet<string> SelectedRoleFilters { get; set; } = new();
+
+    private bool AllChecked
+    {
+        get => SelectedRoleFilters.Count == 2;
+        set
+        {
+            if (value)
+            {
+                SelectedRoleFilters.Add("Teacher");
+                SelectedRoleFilters.Add("Parent");
+            }
+            else
+            {
+                SelectedRoleFilters.Clear();
+            }
+            UpdateFilteredUsers();
+        }
+    }
+
+    private bool TeacherChecked
+    {
+        get => SelectedRoleFilters.Contains("Teacher");
+        set
+        {
+            if (value)
+                SelectedRoleFilters.Add("Teacher");
+            else
+                SelectedRoleFilters.Remove("Teacher");
+
+            UpdateFilteredUsers();
+        }
+    }
+
+    private bool ParentChecked
+    {
+        get => SelectedRoleFilters.Contains("Parent");
+        set
+        {
+            if (value)
+                SelectedRoleFilters.Add("Parent");
+            else
+                SelectedRoleFilters.Remove("Parent");
+
+            UpdateFilteredUsers();
+        }
+    }
+
+    private void UpdateFilteredUsers()
+    {
+        if (SelectedRoleFilters.Count == 0)
+        {
+            FilteredUsers = new List<User>();
+        }
+        else if (SelectedRoleFilters.Count == 2)
+        {
+            FilteredUsers = new List<User>(Users);
+        }
+        else
+        {
+            FilteredUsers = Users.Where(u => SelectedRoleFilters.Contains(u.Role)).ToList();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task ToggleRecipient(int userId, bool isChecked)
+    {
+        if (isChecked)
+            SelectedRecipients.Add(userId);
+        else
+            SelectedRecipients.Remove(userId);
+
+        await SelectedRecipientsChanged.InvokeAsync(SelectedRecipients);
+    }
+}
