@@ -26,29 +26,96 @@
                     親
                 </DxCheckBox>
             </div>
+            <div class="p-1 d-flex flex-grow-1 align-items-center">
+                <DxCheckBox CssClass="w-100"
+                            @bind-Checked="@ClassChecked">
+                    クラス
+                </DxCheckBox>
+            </div>
         </div>
     </div>
 
+    @if (ClassChecked)
+    {
+        <div class="mb-3">
+            <label class="form-label">クラスを選択</label>
+            <select class="form-control" @onchange="OnClassSelected">
+                <option value="">選択してください</option>
+                @foreach (var classItem in Classes)
+                {
+                    <option value="@classItem.Id">@classItem.Name</option>
+                }
+            </select>
+        </div>
+    }
+
     <div>
-        @foreach (var user in FilteredUsers)
+        @foreach (User user in SelectedUsers)
         {
             <div class="form-check">
-                <input type="checkbox" class="form-check-input"
-                       checked="@SelectedRecipients.Contains(user.UserId)"
-                       @onchange="(e) => ToggleRecipient(user.UserId, (bool?)e.Value ?? false)" />
-                <label class="form-check-label">@user.Name</label>
+                <p>@(user.Name + ":" + user.Email)</p>
             </div>
         }
+  
+        
     </div>
+
+    <label for="ddbMultipleSelectionListBox" class="demo-text cw-480 mb-1">宛先選択</label>
+    <DxDropDownBox @bind-Value="Value"
+                   QueryDisplayText="QueryText"
+                   DropDownWidthMode="DropDownWidthMode.EditorWidth"
+                   InputId="ddbMultipleSelectionListBox"
+                   CssClass="cw-480">
+        <DropDownBodyTemplate>
+            <DxListBox Data="@FilteredUsers" TData="User" TValue="User"
+                       Values="@(GetListBoxValues(context.DropDownBox))"
+                       ValuesChanged="@(values => ListBoxValuesChanged(values, context.DropDownBox))"
+                       TextFieldName="@nameof(User.Name)"
+                       SelectionMode="ListBoxSelectionMode.Multiple"
+                       ShowCheckboxes="true"
+                       ShowSearchBox="true"
+                       CssClass="templateListbox">
+            </DxListBox>
+        </DropDownBodyTemplate>
+    </DxDropDownBox>
+
 </div>
 
 @code {
     [Parameter] public List<User> Users { get; set; } = new();
     [Parameter] public HashSet<int> SelectedRecipients { get; set; } = new();
     [Parameter] public EventCallback<HashSet<int>> SelectedRecipientsChanged { get; set; }
+    [Parameter] public List<Children> Children { get; set; } = new();
+    [Parameter] public List<Class> Classes { get; set; } = new();
+    object Value { get; set; }
 
     private List<User> FilteredUsers { get; set; } = new();
     private HashSet<string> SelectedRoleFilters { get; set; } = new();
+    private List<User> SelectedUsers { get; set; } = new(); // 🔄 DropDownBox用の選択ユーザーリスト
+    private int? SelectedClassId { get; set; } // 選択されたクラスID
+    IEnumerable<User> GetListBoxValues(IDropDownBox dropDownBox)
+    {
+        return dropDownBox.Value as IEnumerable<User>;
+    }
+    async void ListBoxValuesChanged(IEnumerable<User> values, IDropDownBox dropDownBox)
+    {
+        dropDownBox.BeginUpdate();
+        SelectedUsers = values.ToList();
+        dropDownBox.Value = SelectedUsers;
+        dropDownBox.EndUpdate();
+
+        // ✅ SelectedRecipients を更新
+        SelectedRecipients.Clear();
+        SelectedRecipients.UnionWith(SelectedUsers.Select(u => u.UserId));
+
+        // ✅ 親コンポーネントに変更を通知
+        await SelectedRecipientsChanged.InvokeAsync(SelectedRecipients);
+    }
+    string QueryText(DropDownBoxQueryDisplayTextContext arg)
+    {
+        var names = (arg.Value as IEnumerable<User>)?.Select(x => x.Name);
+        return names != null ? string.Join(",", names) : string.Empty;
+    }
 
     private bool AllChecked
     {
@@ -96,9 +163,57 @@
         }
     }
 
+    private bool ClassChecked
+    {
+        get => SelectedRoleFilters.Contains("Class");
+        set
+        {
+            if (value)
+            {
+                SelectedRoleFilters.Add("Class"); // ✅ クラスが選択されたときにリストに追加
+            }
+            else
+            {
+                SelectedRoleFilters.Remove("Class");
+                SelectedClassId = null;
+            }
+            UpdateFilteredUsers();
+        }
+    }
+
+
+    private void OnClassSelected(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int classId))
+        {
+            SelectedClassId = classId;
+            ClassChecked = true;  // ✅ クラス選択時にチェックボックスも有効にする
+            UpdateFilteredUsers();
+        }
+        else
+        {
+            SelectedClassId = null;
+            ClassChecked = false;  // ❌ 無効なクラスが選択された場合はチェックを外す
+            FilteredUsers = new List<User>();
+        }
+
+        StateHasChanged();
+    }
+
+
+
     private void UpdateFilteredUsers()
     {
-        if (SelectedRoleFilters.Count == 0)
+        if (ClassChecked && SelectedClassId != null)
+        {
+            // ✅ 選択されたクラスに属する Children を取得
+            var childrenInClass = Children.Where(c => c.ClassId == SelectedClassId).ToList();
+
+            // ✅ Children の UserId をもとに Users をフィルタリング
+            var userIdsInClass = childrenInClass.Select(c => c.UserId).Distinct();
+            FilteredUsers = Users.Where(u => userIdsInClass.Contains(u.UserId)).ToList();
+        }
+        else if (SelectedRoleFilters.Count == 0)
         {
             FilteredUsers = new List<User>();
         }
@@ -113,6 +228,8 @@
 
         StateHasChanged();
     }
+
+
 
     private async Task ToggleRecipient(int userId, bool isChecked)
     {

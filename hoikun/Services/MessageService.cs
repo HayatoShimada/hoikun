@@ -1,4 +1,5 @@
 ﻿using hoikun.Data;
+using hoikun.Services;
 
 using Microsoft.EntityFrameworkCore;
 
@@ -9,10 +10,11 @@ using System.Text.Json;
 public class MessageService
 {
     private readonly ApplicationDbContext _context;
-
-    public MessageService(ApplicationDbContext context)
+    private readonly EmailService _emailService;
+    public MessageService(ApplicationDbContext context, EmailService emailService)
     {
         _context = context;
+        _emailService = emailService;
     }
 
     // 受信メッセージ一覧を取得
@@ -95,6 +97,27 @@ public class MessageService
         await _context.SaveChangesAsync();
     }
 
+    public async Task<List<Children>> GetAllChildrenAsync()
+    {
+        return await _context.Childrens
+            .Include(c => c.Class)
+            .Include(c => c.User)
+            .ToListAsync();
+    }
+
+    public async Task<List<Class>> GetAllClassAsync()
+    {
+        return await _context.Classes
+            .Include(c => c.ClassTeachers)
+            .ToListAsync();
+    }
+
+    public async Task<List<Form>> GetAllFormsAsync()
+    {
+        return await _context.Forms
+            .ToListAsync();
+    }
+
     public async Task<List<User>> GetAllUsersAsync()
     {
         return await _context.Users
@@ -157,6 +180,7 @@ public class MessageService
             throw new InvalidOperationException($"MessageCategoryId {messageDto.MessageCategoryId} is invalid.");
         }
 
+        // メッセージ作成
         Message message = new()
         {
             UserId = senderId,
@@ -174,11 +198,31 @@ public class MessageService
         _context.Messages.Add(message);
         await _context.SaveChangesAsync();
 
+        // 📌 受信者リストを保存（MessageRecipients に追加）
         await SaveMessageRecipientsAsync(message.Id, recipientIds);
+
         await SaveMessageOptionsAsync(message.Id, options);
+
+        // 📧 メール送信
+        await SendEmailsToRecipients(recipientIds, message.Subject, message.Body);
 
         return message.Id;
     }
+
+    private async Task SendEmailsToRecipients(HashSet<int> recipientIds, string subject, string body)
+    {
+        // 受信者の `Email` を取得
+        List<string> recipientEmails = await _context.Users
+            .Where(u => recipientIds.Contains(u.UserId) && !string.IsNullOrEmpty(u.Email))
+            .Select(u => u.Email!)
+            .ToListAsync();
+
+        if (recipientEmails.Any())
+        {
+            await _emailService.SendEmailsAsync(recipientEmails, subject, body);
+        }
+    }
+
 
 
     // 画像を保存
@@ -198,16 +242,18 @@ public class MessageService
     // 宛先を保存
     private async Task SaveMessageRecipientsAsync(int messageId, HashSet<int> recipientIds)
     {
-        List<MessageRecipients> recipients = recipientIds.Select(id => new MessageRecipients
+        List<MessageRecipients> recipients = recipientIds.Select(userId => new MessageRecipients
         {
             MessageId = messageId,
-            UserId = id,
-            IsRead = false
+            UserId = userId,
+            IsRead = false, // 新しいメッセージなので未読
+            ReadAt = null   // 既読日時も null
         }).ToList();
 
         _context.MessageRecipients.AddRange(recipients);
         await _context.SaveChangesAsync();
     }
+
 
     // オプションを保存
     private async Task SaveMessageOptionsAsync(int messageId, Dictionary<string, string> options)
@@ -229,6 +275,18 @@ public class MessageService
             .Select(c => new MessageCategoryDto { Id = c.Id, Name = c.Name })
             .ToListAsync();
     }
+    public async Task<List<MessageCategoryOptionsDto>> GetAvailableOptionsAsync()
+    {
+        return await _context.MessageCategoryOptions
+            .Select(c => new MessageCategoryOptionsDto
+            {
+                Id = c.Id,
+                OptionKey = c.OptionKey // Name が存在しない場合は OptionKey を使用
+            })
+            .ToListAsync();
+    }
+
+
 
     public async Task<List<MessageCategoryOptionsDto>> GetCategoryOptionsAsync(int categoryId)
     {
@@ -253,9 +311,6 @@ public class MessageDto
     public bool IsRead { get; set; } = false;
 }
 
-
-
-
 public class MessageCategoryDto
 {
     public int Id { get; set; }
@@ -267,7 +322,8 @@ public class MessageCategoryDto
 
 public class MessageCategoryOptionsDto
 {
-    public string OptionKey { get; set; } = string.Empty;
+    public int Id { get; set; }  // MessageCategoryOptions の ID
+    public string OptionKey { get; set; } = string.Empty; // `OptionKey` を使用する
 }
 
 public class UserDto

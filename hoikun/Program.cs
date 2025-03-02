@@ -19,6 +19,9 @@ builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
     .AddInMemoryTokenCaches();
 builder.Services.AddScoped<UserStateService>();
 
+// EmailService ‚ð“o˜^
+builder.Services.AddSingleton<EmailService>();
+
 
 // Add services to the container.
 builder.Services.AddScoped<BlobStorageService>();

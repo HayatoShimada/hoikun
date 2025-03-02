@@ -1,4 +1,4 @@
-﻿@page "/answer-form"
+﻿@page "/answer-form/{FormId:int}/{UserId:int}/{ChildrenId:int}"
 @inject IDbContextService FormService
 @inject NavigationManager NavigationManager
 @inject UserStateService UserStateService
@@ -68,7 +68,6 @@ else
     }
 
     <DxFormLayoutItem ColSpanMd="12">
-        <!-- 既存の回答がある場合は「更新」、ない場合は「送信」 -->
         <DxButton CssClass="w-100" RenderStyle="ButtonRenderStyle.Primary"
                   RenderStyleMode="ButtonRenderStyleMode.Outline"
                   Text="@(formSubmission.Id > 0 ? "更新" : "送信")"
@@ -77,30 +76,14 @@ else
 </DxFormLayout>
 
 @code {
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public int FormId { get; set; }
-
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public int? UserId { get; set; }
-
-    [Parameter]
-    [SupplyParameterFromQuery]
-    public int? ChildrenId { get; set; }
+    [Parameter] public int FormId { get; set; }
+    [Parameter] public int UserId { get; set; }
+    [Parameter] public int ChildrenId { get; set; }
 
     private FormModel formModel = new();
     private List<FormField> formFields = new();
     private FormSubmission formSubmission = new();
     private List<FormSubmissionField> formSubmissionFields = new();
-
-    public FormAnswer(List<FormSubmissionField> formSubmissionFields)
-    {
-        this.formSubmissionFields = formSubmissionFields;
-    }
-
-    // フォーム種別（例として利用）
-    private IEnumerable<string> FormTypes = new List<string> { "毎年", "毎月", "毎週", "毎日", "1回限り", "無制限" };
 
     protected override async Task OnInitializedAsync()
     {
@@ -111,7 +94,7 @@ else
                 {
                     Name = form.Name,
                     Description = form.Description,
-                    FormType = form.FormType  // 例："1回限り"など
+                    FormType = form.FormType
                 };
 
             formFields = form.FormFields.Select(f => new FormField
@@ -124,26 +107,20 @@ else
                     Options = f.Options
                 }).ToList();
 
-            // 既存の回答があるかチェック（サービス側で実装）
-            var modelId = UserStateService.ModelId ?? 0;
-            var childrenId = ChildrenId ?? 0;
-            var existingSubmission = await FormService.GetSubmissionAsync(FormId, modelId, childrenId);
+            var existingSubmission = await FormService.GetSubmissionAsync(FormId, UserId, ChildrenId);
 
             if (existingSubmission != null)
             {
-                // 回答済みの場合は、既存の回答内容を利用する
                 formSubmission = existingSubmission;
                 formSubmissionFields = await FormService.GetSubmissionFieldsAsync(existingSubmission.Id) ?? new List<FormSubmissionField>();
-
             }
             else
             {
-                // 未回答の場合は、新規に回答用オブジェクトを生成
                 formSubmission = new FormSubmission
                     {
                         FormId = FormId,
                         SubmittedAt = DateTime.UtcNow,
-                        UserId = modelId
+                        UserId = UserId
                     };
 
                 foreach (var field in formFields)
@@ -159,7 +136,6 @@ else
 
     private async Task SubmitForm()
     {
-        // 入力チェック（必要に応じて各フィールドの必須チェックを追加）
         if (formSubmissionFields.Any(f => f.StringValue == null && f.IntValue == null && f.DateValue == null)
             || !UserStateService.ModelId.HasValue)
         {
@@ -167,19 +143,16 @@ else
             return;
         }
 
-        // 回答済みなら更新、未回答なら新規登録
-        formSubmission.SubmittedAt = DateTime.UtcNow;  // 回答日時の更新
+        formSubmission.SubmittedAt = DateTime.UtcNow;
 
         try
         {
             if (formSubmission.Id > 0)
             {
-                // 既存回答の更新処理（サービス側に UpdateSubmissionAsync メソッドを用意）
                 await FormService.UpdateSubmissionAsync(formSubmission);
             }
             else
             {
-                // 新規回答の登録
                 await FormService.SubmitFormAsync(formSubmission);
             }
 
