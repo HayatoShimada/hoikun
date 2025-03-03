@@ -21,9 +21,9 @@
 {
     <UserSelection Users="@allUsers"
                    SelectedRecipients="@selectedRecipients"
-                   SelectedRecipientsChanged="@(recipients => selectedRecipients = recipients)" 
+                   SelectedRecipientsChanged="@(recipients => selectedRecipients = recipients)"
                    Children="@children"
-                   Classes="@classes"/>
+                   Classes="@classes" />
 
     <div class="mb-3">
         <label class="form-label">メッセージカテゴリ</label>
@@ -42,7 +42,7 @@
         {
             <div>
                 <label>@option.OptionKey</label>
-                <select class="form-control" @bind="messageOptions[option.OptionKey]" @onchange="HandleOptionChange">
+                <select class="form-control" @onchange="(e) => HandleOptionChange(option.OptionKey, e.Value?.ToString())">
                     <option value="">選択してください</option>
                     <option value="フォーム">フォーム</option>
                     <option value="その他">その他</option>
@@ -51,7 +51,7 @@
         }
     </div>
 
-    @if (messageOptions.ContainsKey("Type") && messageOptions["Type"] == "フォーム")
+    @if (messageOptions.TryGetValue("Type", out var optionType) && optionType == "フォーム")
     {
         <div class="mb-3">
             <label class="form-label">フォームを選択</label>
@@ -66,10 +66,8 @@
     }
 }
 
-
 <h4>画像添付</h4>
 <InputFile OnChange="HandleFileUpload" />
-
 
 <button class="btn btn-primary mt-3" @onclick="SendMessage">送信</button>
 
@@ -81,23 +79,20 @@
     private Dictionary<string, string> messageOptions = new();
     private byte[] uploadedPhoto = Array.Empty<byte>();
 
-    private List<User> allUsers = new(); // すべてのユーザー（初期値）
-    private List<Children> children = new(); // フィルタリングされたユーザー
-    private List<Class> classes = new(); // フィルタリングされたユーザー
-    private List<Form> forms = new(); // フィルタリングされたユーザー
+    private List<User> allUsers = new();
+    private List<Children> children = new();
+    private List<Class> classes = new();
+    private List<Form> forms = new();
 
     private int? selectedFormId;
-    private HashSet<string> selectedRoleFilters = new(); // 先生 or 親の選択状態を保持
     private HashSet<int> selectedRecipients = new();
 
     protected override async Task OnInitializedAsync()
     {
-
         allUsers = await MessageService.GetAllUsersAsync();
         children = await MessageService.GetAllChildrenAsync();
         classes = await MessageService.GetAllClassAsync();
         forms = await MessageService.GetAllFormsAsync();
-
         categories = await MessageService.GetMessageCategoriesAsync();
         availableOptions = await MessageService.GetAvailableOptionsAsync();
 
@@ -106,42 +101,31 @@
             var originalMessage = await MessageService.GetMessageByIdAsync(ReplyToMessageId.Value);
             message.Subject = "Re: " + originalMessage.Subject;
             message.Body = "\n\n---\n" + originalMessage.Body;
-            int? userId = UserStateService.ModelId;
 
+            int? userId = UserStateService.ModelId;
             if (userId.HasValue)
             {
-                bool isRead = await MessageService.ReadMessageAsync(originalMessage.Id, userId);
-
+                await MessageService.ReadMessageAsync(originalMessage.Id, userId);
             }
-        }
-        else
-        {
-            categories = await MessageService.GetMessageCategoriesAsync();
         }
     }
 
     private async Task HandleFileUpload(InputFileChangeEventArgs e)
     {
-        var file = e.File;
-        if (file != null)
-        {
-            using var ms = new MemoryStream();
-            await file.OpenReadStream().CopyToAsync(ms);
-            uploadedPhoto = ms.ToArray();
-        }
+        using var ms = new MemoryStream();
+        await e.File.OpenReadStream().CopyToAsync(ms);
+        uploadedPhoto = ms.ToArray();
     }
 
     private async Task SendMessage()
     {
         if (UserStateService.ModelId == null)
-        {
             return;
-        }
 
-        int senderId = (int)UserStateService.ModelId;
+        int senderId = UserStateService.ModelId.Value;
 
-        // ✅ フォームのリンクを本文に追加
-        if (messageOptions.ContainsKey("Type") && messageOptions["Type"] == "フォーム" && selectedFormId.HasValue)
+        // フォームのリンクを本文に追加
+        if (messageOptions.TryGetValue("Type", out var optionType) && optionType == "フォーム" && selectedFormId.HasValue)
         {
             string formLink = $"{Navigation.BaseUri}answer-form?FormId={selectedFormId}";
             message.Body += $"\n\nフォームへのリンク: <a href='{formLink}'>{formLink}</a>";
@@ -155,7 +139,7 @@
         {
             int messageId = await MessageService.CreateMessageAsync(senderId, message, selectedRecipients, messageOptions, uploadedPhoto);
 
-            // 送信先ユーザーの LINE ID を取得
+            // 送信先の LINE ID を取得
             List<User> recipients = await MessageService.GetUsersByIdsAsync(selectedRecipients);
             List<string> lineIds = recipients.Where(u => !string.IsNullOrEmpty(u.LineId)).Select(u => u.LineId).ToList();
 
@@ -168,20 +152,17 @@
         Navigation.NavigateTo("/message-list");
     }
 
-
-    private void ToggleRecipient(int userId, bool? isChecked)
+    private void HandleOptionChange(string key, string? value)
     {
-        if (isChecked == true)
+        if (!string.IsNullOrEmpty(value))
         {
-            selectedRecipients.Add(userId);
+            messageOptions[key] = value;
         }
         else
         {
-            selectedRecipients.Remove(userId);
+            messageOptions.Remove(key);
         }
+
+        StateHasChanged();
     }
-
-
-
-
 }
