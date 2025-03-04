@@ -20,41 +20,24 @@
 @if (ReplyToMessageId == null)
 {
     <UserSelection Users="@allUsers"
-                   SelectedRecipients="@selectedRecipients"
-                   SelectedRecipientsChanged="@(recipients => selectedRecipients = recipients)"
-                   Children="@children"
-                   Classes="@classes" />
+    SelectedRecipients="@selectedRecipients"
+    SelectedRecipientsChanged="@(recipients => selectedRecipients = recipients)"
+    Children="@children"
+    Classes="@classes" />
 
-    <div class="mb-3">
-        <label class="form-label">メッセージカテゴリ</label>
-        <select class="form-control" @bind="message.MessageCategoryId">
-            <option value="">選択してください</option>
-            @foreach (var category in categories)
-            {
-                <option value="@category.Id">@category.Name</option>
-            }
-        </select>
-    </div>
 
-    <h4>オプション</h4>
-    <div class="mb-3">
-        @foreach (var option in availableOptions)
-        {
-            <div>
-                <label>@option.OptionKey</label>
-                <select class="form-control" @onchange="(e) => HandleOptionChange(option.OptionKey, e.Value?.ToString())">
-                    <option value="">選択してください</option>
-                    <option value="フォーム">フォーム</option>
-                    <option value="その他">その他</option>
-                </select>
-            </div>
-        }
-    </div>
+    <label>カテゴリ</label>
+    <DxComboBox Data="@options"
+    TextFieldName="@nameof(MessageCategory.Name)"
+    @bind-Value="messageCategory"
+    @onchange="StateHasChanged"
+    CssClass="cw-480"
+    InputId="cbOverview" />
 
-    @if (messageOptions.TryGetValue("Type", out var optionType) && optionType == "フォーム")
+    @if (messageCategory.Name == "フォーム")
     {
         <div class="mb-3">
-            <label class="form-label">フォームを選択</label>
+            <label class="form-label">フォーム選択：カテゴリがフォームの場合必須</label>
             <select class="form-control" @bind="selectedFormId">
                 <option value="">選択してください</option>
                 @foreach (var form in forms)
@@ -66,16 +49,22 @@
     }
 }
 
-<h4>画像添付</h4>
-<InputFile OnChange="HandleFileUpload" />
+<div class="mb-3">
+    <h4>画像添付</h4>
+    <InputFile OnChange="HandleFileUpload" />
+</div>
 
-<button class="btn btn-primary mt-3" @onclick="SendMessage">送信</button>
+<div class="mb-3">
+    <DxButton CssClass="cw-480" @onclick="SendMessage">送信</DxButton>
+
+</div>
 
 @code {
     [Parameter] public int? ReplyToMessageId { get; set; }
     private MessageDto message = new();
     private List<MessageCategoryDto> categories = new();
-    private List<MessageCategoryOptionsDto> availableOptions = new();
+    private List<MessageCategory> options = new();
+    private MessageCategory messageCategory = new();
     private Dictionary<string, string> messageOptions = new();
     private byte[] uploadedPhoto = Array.Empty<byte>();
 
@@ -94,7 +83,7 @@
         classes = await MessageService.GetAllClassAsync();
         forms = await MessageService.GetAllFormsAsync();
         categories = await MessageService.GetMessageCategoriesAsync();
-        availableOptions = await MessageService.GetAvailableOptionsAsync();
+        options = await MessageService.GetMessageOptionsAsync();
 
         if (ReplyToMessageId != null)
         {
@@ -123,12 +112,13 @@
             return;
 
         int senderId = UserStateService.ModelId.Value;
+        message.MessageCategoryId = messageCategory.Id;
 
         // フォームのリンクを本文に追加
-        if (messageOptions.TryGetValue("Type", out var optionType) && optionType == "フォーム" && selectedFormId.HasValue)
+        if (messageCategory.Name == "フォーム")
         {
-            string formLink = $"{Navigation.BaseUri}answer-form?FormId={selectedFormId}";
-            message.Body += $"\n\nフォームへのリンク: <a href='{formLink}'>{formLink}</a>";
+            string formLink = $"{Navigation.BaseUri}answer-form/{selectedFormId}/{UserStateService.ModelId}/0";
+            message.Body += $"\n\nフォームへのリンク:{formLink}";
         }
 
         if (ReplyToMessageId != null)
@@ -152,17 +142,5 @@
         Navigation.NavigateTo("/message-list");
     }
 
-    private void HandleOptionChange(string key, string? value)
-    {
-        if (!string.IsNullOrEmpty(value))
-        {
-            messageOptions[key] = value;
-        }
-        else
-        {
-            messageOptions.Remove(key);
-        }
 
-        StateHasChanged();
-    }
 }

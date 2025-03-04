@@ -275,14 +275,9 @@ public class MessageService
             .Select(c => new MessageCategoryDto { Id = c.Id, Name = c.Name })
             .ToListAsync();
     }
-    public async Task<List<MessageCategoryOptionsDto>> GetAvailableOptionsAsync()
+    public async Task<List<MessageCategory>> GetMessageOptionsAsync()
     {
-        return await _context.MessageCategoryOptions
-            .Select(c => new MessageCategoryOptionsDto
-            {
-                Id = c.Id,
-                OptionKey = c.OptionKey // Name が存在しない場合は OptionKey を使用
-            })
+        return await _context.MessageCategories
             .ToListAsync();
     }
 
