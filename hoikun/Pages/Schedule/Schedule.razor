@@ -250,40 +250,46 @@
     void SaveAppointment(DxSchedulerAppointmentItem e, bool isNew)
     {
         var appointment = e.SourceObject as Appointment;
+
         if (appointment == null)
         {
             Console.WriteLine("Appointment data is missing.");
             return;
         }
 
-        if (!_isAll && !_isTeacher && !_isClass)
+        if (isNew)
         {
-            Console.WriteLine("No sharing scope selected.");
-            return;
-        }
+            if (!_isAll && !_isTeacher && !_isClass || isNew)
+            {
+                Console.WriteLine("No sharing scope selected.");
+                return;
+            }
 
-        if (_isClass && selectedClass == null)
-        {
-            Console.WriteLine("Class not selected.");
-            return;
+            if (_isClass && selectedClass == null)
+            {
+                Console.WriteLine("Class not selected.");
+                return;
+            }
+
+            if (_isClass)
+            {
+                appointment.ClassId = selectedClass?.Id ?? 1;
+                appointment.IsClass = true;
+            }
+            else if (_isTeacher)
+            {
+                appointment.IsTeacher = true;
+            }
+            else if (_isAll)
+            {
+                appointment.IsAll = true;
+            }
+
         }
 
         appointment.UserId = UserStateService.ModelId;
         appointment.CreatedAt = DateTime.Now;
 
-        if (_isClass)
-        {
-            appointment.ClassId = selectedClass?.Id ?? 1;
-            appointment.IsClass = true;
-        }
-        else if (_isTeacher)
-        {
-            appointment.IsTeacher = true;
-        }
-        else if (_isAll)
-        {
-            appointment.IsAll = true;
-        }
 
         if (isNew)
         {
