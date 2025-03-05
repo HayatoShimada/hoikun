@@ -35,32 +35,39 @@ else
             @foreach (var field in group)
             {
                 var submissionField = formSubmissionFields.FirstOrDefault(f => f.FieldId == field.Id);
-                if (submissionField == null) { continue; }
+                if (submissionField == null) continue;
 
                 <DxFormLayoutItem ColSpanMd="12" Caption="@field.Label">
                     @if (field.FieldType == "テキスト")
                     {
-                        <DxTextBox @bind-Value="submissionField.StringValue" />
+                        <DxTextBox @bind-Value="submissionField.StringValue"
+                                   @onchange="(e) => OnChangeForm(field.Id, e.Value)" />
                     }
                     else if (field.FieldType == "長文")
                     {
-                        <DxMemo @bind-Value="submissionField.StringValue" Rows="3" />
+                        <DxMemo @bind-Value="submissionField.StringValue" Rows="3"
+                                @onchange="(e) => OnChangeForm(field.Id, e.Value)" />
                     }
                     else if (field.FieldType == "数値")
                     {
-                        <DxSpinEdit @bind-Value="submissionField.IntValue" InputMode="Integer" />
+                        <DxSpinEdit @bind-Value="submissionField.IntValue" InputMode="Integer"
+                                    @onchange="(e) => OnChangeForm(field.Id, e.Value)" />
                     }
                     else if (field.FieldType == "日付")
                     {
-                        <DxDateEdit T="DateTime?" @bind-Value="submissionField.DateValue" />
+                        <DxDateEdit T="DateTime?" @bind-Value="submissionField.DateValue"
+                                    DateChanged="(e) => OnChangeForm(field.Id, e.Value)" />
                     }
                     else if (field.FieldType == "時刻")
                     {
-                        <DxDateEdit T="DateTime?" @bind-Value="submissionField.DateValue" TimeSectionVisible="true" />
+                        <DxDateEdit T="DateTime?" @bind-Value="submissionField.DateValue"
+                                    TimeSectionVisible="true"
+                                    DateChanged="(e) => OnChangeForm(field.Id, e.Value)" />
                     }
                     else if (field.FieldType == "選択形式")
                     {
-                        <DxComboBox Data="@field.Options" @bind-Value="submissionField.StringValue" />
+                        <DxComboBox Data="@field.Options" @bind-Value="submissionField.StringValue"
+                                    @onchange="(e) => OnChangeForm(field.Id, e.Value)" />
                     }
                 </DxFormLayoutItem>
             }
@@ -123,15 +130,42 @@ else
                         UserId = UserId
                     };
 
-                foreach (var field in formFields)
-                {
-                    formSubmissionFields.Add(new FormSubmissionField
-                        {
-                            FieldId = field.Id
-                        });
-                }
+                formSubmissionFields = formFields.Select(field => new FormSubmissionField
+                    {
+                        FieldId = field.Id,
+                        StringValue = "",
+                        IntValue = 0,
+                        DateValue = null
+                    }).ToList();
             }
         }
+    }
+
+    private void OnChangeForm(int fieldId, object value)
+    {
+        var field = formSubmissionFields.FirstOrDefault(f => f.FieldId == fieldId);
+        if (field == null) return;
+
+        switch (value)
+        {
+            case string stringValue:
+                field.StringValue = stringValue;
+                break;
+            case int intValue:
+                field.IntValue = intValue;
+                break;
+            case DateTime dateTimeValue:
+                field.DateValue = dateTimeValue;
+                break;
+            case null:
+                Console.WriteLine($"Field {fieldId} received null value");
+                break;
+            default:
+                Console.WriteLine($"Unhandled type for field {fieldId}");
+                break;
+        }
+
+        StateHasChanged(); // UIの更新を強制
     }
 
     private async Task SubmitForm()
@@ -154,12 +188,12 @@ else
             else
             {
                 await FormService.SubmitFormAsync(formSubmission);
+                formSubmission.Id = await FormService.GetLastInsertedSubmissionIdAsync();
             }
 
-            var submissionId = formSubmission.Id;
             foreach (var field in formSubmissionFields)
             {
-                field.SubmissionId = submissionId;
+                field.SubmissionId = formSubmission.Id;
             }
 
             await FormService.SubmitFormFieldsAsync(formSubmissionFields);

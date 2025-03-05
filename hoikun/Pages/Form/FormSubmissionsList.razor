@@ -1,0 +1,43 @@
+﻿@page "/form-submissions/{UserId:int}"
+@inject IDbContextService FormService
+@inject NavigationManager NavigationManager
+
+<h3>回答一覧</h3>
+
+<DxGrid Data="@submissions"
+        TextWrapEnabled="false"
+        PageSize="20">
+
+    <Columns>
+        <DxGridDataColumn FieldName="Id" MinWidth="100" Caption="ID" />
+        <DxGridDataColumn FieldName="Form.Name" MinWidth="100" Caption="フォーム名" />
+        <DxGridDataColumn FieldName="SubmittedAt" MinWidth="100" Caption="提出日" Format="yyyy/MM/dd HH:mm" />
+        <DxGridDataColumn FieldName="ChildrenId" MinWidth="100" Caption="対象児" />
+
+        <DxGridDataColumn FieldName="Id" Width="15%">
+            <CellDisplayTemplate>
+                <button class="btn btn-link grid-btn-link" @onclick="() => ViewSubmissionDetails((int)context.Value)">
+                    詳細を見る
+                </button>
+            </CellDisplayTemplate>
+            <HeaderCaptionTemplate>
+                詳細
+            </HeaderCaptionTemplate>
+        </DxGridDataColumn>
+    </Columns>
+</DxGrid>
+
+@code {
+    [Parameter] public int UserId { get; set; }
+    private List<FormSubmission> submissions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        submissions = await FormService.GetFormSubmissionsByUserIdAsync(UserId);
+    }
+
+    private void ViewSubmissionDetails(int submissionId)
+    {
+        NavigationManager.NavigateTo($"/form-submission-detail/{submissionId}");
+    }
+}

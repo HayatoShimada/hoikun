@@ -343,6 +343,13 @@ public class DbContextService : IDbContextService
         return await _dbContext.FormSubmissionFields
             .Where(fs => fs.SubmissionId == submissionId).ToListAsync();
     }
+    public async Task<int> GetLastInsertedSubmissionIdAsync()
+    {
+        FormSubmission? lastSubmission = await _dbContext.FormSubmissions
+            .OrderByDescending(s => s.Id)
+            .FirstOrDefaultAsync();
+        return lastSubmission?.Id ?? 0;
+    }
 
     public async Task UpdateSubmissionAsync(FormSubmission submission)
     {
@@ -356,6 +363,24 @@ public class DbContextService : IDbContextService
         // エンティティの値を更新
         _dbContext.Entry(existingSubmission).CurrentValues.SetValues(submission);
         await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<FormSubmission>> GetFormSubmissionsByUserIdAsync(int userId)
+    {
+        return await _dbContext.FormSubmissions
+            .Include(fs => fs.Form)
+            .Where(fs => fs.UserId == userId)
+            .OrderByDescending(fs => fs.SubmittedAt)
+            .ToListAsync();
+    }
+
+    public async Task<FormSubmission?> GetFormSubmissionDetailAsync(int submissionId)
+    {
+        return await _dbContext.FormSubmissions
+            .Include(fs => fs.Form)
+            .Include(fs => fs.FormSubmissionFields)
+            .ThenInclude(fsf => fsf.FormField)
+            .FirstOrDefaultAsync(fs => fs.Id == submissionId);
     }
 
 }

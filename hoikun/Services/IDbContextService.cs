@@ -60,9 +60,12 @@ public interface IDbContextService
     Task<FormSubmission?> GetSubmissionAsync(int formId, int userId, int childrenId);
 
     Task<List<FormSubmissionField>?> GetSubmissionFieldsAsync(int submissionId);
-
+    Task<int> GetLastInsertedSubmissionIdAsync();
 
     // Form回答の更新
     Task UpdateSubmissionAsync(FormSubmission submission);
+
+    Task<List<FormSubmission>> GetFormSubmissionsByUserIdAsync(int userId);
+    Task<FormSubmission?> GetFormSubmissionDetailAsync(int submissionId);
 
 }
