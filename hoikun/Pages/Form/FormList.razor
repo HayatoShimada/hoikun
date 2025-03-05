@@ -36,7 +36,16 @@
                 回答
             </HeaderCaptionTemplate>
         </DxGridDataColumn>
-
+        <DxGridDataColumn FieldName="Id" Width="15%">
+            <CellDisplayTemplate>
+                <button class="btn btn-link grid-btn-link" @onclick="() => FormAnswerListClick((int)context.Value)">
+                    回答一覧表示
+                </button>
+            </CellDisplayTemplate>
+            <HeaderCaptionTemplate>
+                回答
+            </HeaderCaptionTemplate>
+        </DxGridDataColumn>
     </Columns>
 </DxGrid>
 
@@ -71,5 +80,10 @@
         NavigationManager.NavigateTo($"/answer-form/{formId}/{userId}/{childrenId}");
     }
 
-
+    private void FormAnswerListClick(int formId)
+    {
+        int userId = UserStateService.ModelId ?? 0;
+        int childrenId = 0; // 必要なら別途取得
+        NavigationManager.NavigateTo($"/form-submissions/{userId}");
+    }
 }

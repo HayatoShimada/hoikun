@@ -33,6 +33,7 @@
 
     protected override async Task OnInitializedAsync()
     {
+
         submissions = await FormService.GetFormSubmissionsByUserIdAsync(UserId);
     }
 
