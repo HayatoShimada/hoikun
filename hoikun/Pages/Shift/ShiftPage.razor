@@ -1,0 +1,20 @@
+﻿@page "/shift"
+@inject UserStateService StateService
+@inject ApplicationDbContext dbContext
+@inject IDbContextService dbContextService
+@attribute [Authorize]
+
+<div>
+    <DxTabs>
+        <DxTab Text="先生一覧" TabIconCssClass="tabs-icon-home tabs-icon"></DxTab>
+        <DxTab Text="自分のシフト" TabIconCssClass="tabs-icon-support tabs-icon"></DxTab>
+        <DxTab Text="月間シフト" TabIconCssClass="tabs-icon-products tabs-icon"></DxTab>
+        <DxTab Text="週間シフト" TabIconCssClass="tabs-icon-products tabs-icon"></DxTab>
+    </DxTabs>
+ </div>
+
+@code {
+
+
+
+}

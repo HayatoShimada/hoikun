@@ -1,6 +1,11 @@
 ﻿@page "/BarcodeScan"
 @implements IDisposable
 @using Microsoft.JSInterop
+@using QRCoder
+
+
+
+<QRCodeScanner Width="600" ShowOutput="true" LoadingMessage="Loading video stream (please make sure you have a camera enabled)" OutputMessage="No QR code detected." />
 
 <DxGridLayout CssClass="h-100" ColumnSpacing="16px" RowSpacing="16px">
     <Rows>
@@ -58,8 +63,37 @@
     private DotNetObjectReference<BarcodeScan>? objRef;
     private string? ScannedBarcode;
 
+    private QRCodeScannerJsInterop? _qrCodeScannerJsInterop;
+    private Action<string>? _onQrCodeScanAction;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _qrCodeScannerJsInterop = new QRCodeScannerJsInterop(JS);
+    }
+
+
+
+    private static void OnQrCodeScan(string code)
+    {
+        Console.WriteLine($"OnQrCodeScan {code}");
+    }
+
+    private bool _isJsInitialized = false;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender && !_isJsInitialized)
+        {
+            _isJsInitialized = true;
+            await _qrCodeScannerJsInterop.Init(_onQrCodeScanAction);
+        }
+    }
+
+
+
     protected override void OnAfterRender(bool firstRender)
     {
+
         try
         {
             if (firstRender)

@@ -1,6 +1,7 @@
 ﻿@page "/attendance_list"
 
 @using Microsoft.EntityFrameworkCore
+@using QRCoder
 
 @inject UserStateService StateService
 @inject ApplicationDbContext dbContext
@@ -45,17 +46,22 @@
     <Columns>
         <DxGridCommandColumn Width="160px" />
         <DxGridDataColumn FieldName="Name" MinWidth="100" />
-        <DxGridDataColumn FieldName="UserId" Caption="バーコード" MinWidth="150">
+        <DxGridDataColumn FieldName="UserId" Caption="QRコード" MinWidth="150">
             <CellDisplayTemplate Context="cellContext">
                 @{
                     var classItem = (User)cellContext.DataItem;
-                    var barcodeId = $"barcode-{classItem.UserId}";
+                    var qrCodeSvg = GenerateSvgQRCode(classItem.AADB2CUserId);
                 }
-                <svg id="@barcodeId"></svg>
+                <div>
+                    @((MarkupString)qrCodeSvg)
+                </div>
             </CellDisplayTemplate>
         </DxGridDataColumn>
     </Columns>
 </DxGrid>
+
+
+
 
 @code {
     [Inject]
@@ -71,11 +77,27 @@
 
     private bool isFirstRender = true;
 
+    QRCodeGenerator qrGenerator = new QRCodeGenerator();
+    List<QRCodeData> qRCodeDatas = new();
+
     // フォーム一覧を取得
     protected override async Task OnInitializedAsync()
     {
         timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
         users = await dbContextService.GetUserAsync("Teacher");
+
+        
+    }
+
+
+    private string GenerateSvgQRCode(string data)
+    {
+        using (QRCodeGenerator qrGenerator = new QRCodeGenerator())
+        using (QRCodeData qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.Q))
+        using (SvgQRCode qrCode = new SvgQRCode(qrCodeData))
+        {
+            return qrCode.GetGraphic(2); // SVGデータとして出力
+        }
     }
 
     // クエリパラメータ付きでページ遷移

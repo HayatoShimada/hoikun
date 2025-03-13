@@ -1,0 +1,119 @@
+﻿@page "/shift-management"
+
+@inject IDbContextService dbContextService
+
+<h3>シフト管理</h3>
+
+<!-- 年と月のセレクタ -->
+<div class="d-flex mb-3">
+    <label class="me-2">年:</label>
+    <select class="form-select me-3" style="width:100px;" @bind="selectedYear" @bind:event="onchange">
+        @for (int y = DateTime.Now.Year - 5; y <= DateTime.Now.Year + 5; y++)
+        {
+            <option value="@y">@y</option>
+        }
+    </select>
+
+    <label class="me-2">月:</label>
+    <select class="form-select" style="width:100px;" @bind="selectedMonth" @bind:event="onchange">
+        @for (int m = 1; m <= 12; m++)
+        {
+            <option value="@m">@m</option>
+        }
+    </select>
+</div>
+
+<!-- シフト管理テーブル -->
+<div class="table-responsive">
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>先生名</th>
+                @for (int i = 1; i <= daysInMonth; i++)
+                {
+                    <th>@i</th>
+                }
+            </tr>
+        </thead>
+        <tbody>
+            @if (employees != null && shifts != null)
+            {
+                @foreach (var employee in employees)
+                {
+                    <tr>
+                        <td>@employee.EmployeeName</td>
+                        @for (int i = 1; i <= daysInMonth; i++)
+                        {
+                            var workDate = new DateTime(selectedYear, selectedMonth, i);
+                            var shift = shifts.FirstOrDefault(s => s.EmployeeId == employee.EmployeeId && s.WorkDate.Date == workDate.Date)
+                                ?? new Shift { EmployeeId = employee.EmployeeId, WorkDate = workDate, ShiftType = "" };
+
+                            <td>
+                                <select class="form-select" value="@shift.ShiftType" @onchange="(e) => UpdateShift(employee.EmployeeId, workDate, e.Value.ToString())">
+                                    <option value="早番">早番</option>
+                                    <option value="遅番">遅番</option>
+                                    <option value="代休">代休</option>
+                                    <option value="">未設定</option>
+                                </select>
+                            </td>
+
+                        }
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+</div>
+
+@code {
+    private List<Employee>? employees;
+    private List<Shift>? shifts;
+    private int selectedYear = DateTime.Now.Year;
+    private int selectedMonth = DateTime.Now.Month;
+    private int daysInMonth;
+
+    protected override async Task OnInitializedAsync()
+    {
+        UpdateDaysInMonth();
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        employees = await dbContextService.GetEmployeesAsync();
+        shifts = await dbContextService.GetShiftsAsync(selectedYear, selectedMonth);
+    }
+
+    private async Task OnYearOrMonthChanged()
+    {
+        UpdateDaysInMonth();
+        await LoadData();
+    }
+
+    private void UpdateDaysInMonth()
+    {
+        daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
+    }
+
+    private async Task UpdateShift(int employeeId, DateTime workDate, string shiftType)
+    {
+        var shift = shifts.FirstOrDefault(s => s.EmployeeId == employeeId && s.WorkDate.Date == workDate.Date);
+
+        if (shift == null)
+        {
+            shift = new Shift
+            {
+                EmployeeId = employeeId,
+                WorkDate = workDate,
+                ShiftType = shiftType
+            };
+            shifts.Add(shift);
+            await dbContextService.AddShiftAsync(shift);
+        }
+        else
+        {
+            shift.ShiftType = shiftType;
+            await dbContextService.UpdateShiftAsync(shift);
+        }
+    }
+}

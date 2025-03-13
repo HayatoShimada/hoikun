@@ -383,4 +383,29 @@ public class DbContextService : IDbContextService
             .FirstOrDefaultAsync(fs => fs.Id == submissionId);
     }
 
+
+    public async Task<List<Employee>> GetEmployeesAsync()
+    {
+        return await _dbContext.Employees.ToListAsync();
+    }
+
+    public async Task<List<Shift>> GetShiftsAsync(int year, int month)
+    {
+        return await _dbContext.Shifts
+            .Where(s => s.WorkDate.Year == year && s.WorkDate.Month == month)
+            .ToListAsync();
+    }
+
+    public async Task AddShiftAsync(Shift shift)
+    {
+        _dbContext.Shifts.Add(shift);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateShiftAsync(Shift shift)
+    {
+        _dbContext.Shifts.Update(shift);
+        await _dbContext.SaveChangesAsync();
+    }
+
 }

@@ -35,6 +35,8 @@ namespace hoikun.Data
 
         // --- 勤怠・給与関連 ---
         public DbSet<Employee> Employees => Set<Employee>();
+
+        public DbSet<Shift> Shifts => Set<Shift>();
         public DbSet<TimeCard> TimeCards => Set<TimeCard>();
         public DbSet<OvertimeRate> OvertimeRates => Set<OvertimeRate>();
         public DbSet<PaySlip> PaySlips => Set<PaySlip>();
@@ -526,7 +528,23 @@ namespace hoikun.Data
 
         public List<TimeCard>? TimeCards { get; set; }
         public List<PaySlip>? PaySlips { get; set; }
+
+        public List<Shift>? Shifts { get; set; }
     }
+
+    public class Shift
+    {
+        public int ShiftId { get; set; }
+        public int EmployeeId { get; set; }
+        public DateTime WorkDate { get; set; } // 勤務日
+        public string ShiftType { get; set; } = "早番"; // "早番" / "遅番" / "代休" など
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+        public Employee? Employee { get; set; }
+    }
+
 
     /// <summary>
     /// タイムカード(日次の勤怠記録)

@@ -68,4 +68,13 @@ public interface IDbContextService
     Task<List<FormSubmission>> GetFormSubmissionsByUserIdAsync(int userId);
     Task<FormSubmission?> GetFormSubmissionDetailAsync(int submissionId);
 
+    // Employee の取得
+    Task<List<Employee>> GetEmployeesAsync();
+
+    // 指定した年・月の Shift を取得
+    Task<List<Shift>> GetShiftsAsync(int year, int month);
+
+    Task AddShiftAsync(Shift shift);
+    Task UpdateShiftAsync(Shift shift);
+
 }
