@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using hoikun.Data;
 
@@ -11,9 +12,11 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250314010557_2025_03_14_1")]
+    partial class _2025_03_14_1
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -704,14 +707,14 @@ namespace hoikun.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<TimeOnly>("EndTime")
+                    b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<TimeOnly>("StartTime")
+                    b.Property<TimeSpan>("StartTime")
                         .HasColumnType("time");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -720,6 +723,35 @@ namespace hoikun.Migrations
                     b.HasKey("ShiftTypeId");
 
                     b.ToTable("ShiftTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            ShiftTypeId = 1,
+                            CreatedAt = new DateTime(2025, 3, 14, 10, 5, 57, 364, DateTimeKind.Local).AddTicks(3628),
+                            EndTime = new TimeSpan(0, 15, 0, 0, 0),
+                            Name = "早番",
+                            StartTime = new TimeSpan(0, 7, 0, 0, 0),
+                            UpdatedAt = new DateTime(2025, 3, 14, 10, 5, 57, 364, DateTimeKind.Local).AddTicks(3641)
+                        },
+                        new
+                        {
+                            ShiftTypeId = 2,
+                            CreatedAt = new DateTime(2025, 3, 14, 10, 5, 57, 364, DateTimeKind.Local).AddTicks(3648),
+                            EndTime = new TimeSpan(0, 23, 0, 0, 0),
+                            Name = "遅番",
+                            StartTime = new TimeSpan(0, 15, 0, 0, 0),
+                            UpdatedAt = new DateTime(2025, 3, 14, 10, 5, 57, 364, DateTimeKind.Local).AddTicks(3648)
+                        },
+                        new
+                        {
+                            ShiftTypeId = 3,
+                            CreatedAt = new DateTime(2025, 3, 14, 10, 5, 57, 364, DateTimeKind.Local).AddTicks(3649),
+                            EndTime = new TimeSpan(0, 0, 0, 0, 0),
+                            Name = "代休",
+                            StartTime = new TimeSpan(0, 0, 0, 0, 0),
+                            UpdatedAt = new DateTime(2025, 3, 14, 10, 5, 57, 364, DateTimeKind.Local).AddTicks(3650)
+                        });
                 });
 
             modelBuilder.Entity("hoikun.Data.TimeCard", b =>

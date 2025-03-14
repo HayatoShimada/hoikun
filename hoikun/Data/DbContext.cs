@@ -37,6 +37,8 @@ namespace hoikun.Data
         public DbSet<Employee> Employees => Set<Employee>();
 
         public DbSet<Shift> Shifts => Set<Shift>();
+
+        public DbSet<ShiftType> ShiftTypes => Set<ShiftType>();
         public DbSet<TimeCard> TimeCards => Set<TimeCard>();
         public DbSet<OvertimeRate> OvertimeRates => Set<OvertimeRate>();
         public DbSet<PaySlip> PaySlips => Set<PaySlip>();
@@ -532,17 +534,31 @@ namespace hoikun.Data
         public List<Shift>? Shifts { get; set; }
     }
 
+    public class ShiftType
+    {
+        public int ShiftTypeId { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public TimeOnly StartTime { get; set; }  // TimeOnly? → TimeSpan? に変更
+        public TimeOnly EndTime { get; set; }    // TimeOnly? → TimeSpan? に変更
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+        public DateTime UpdatedAt { get; set; } = DateTime.Now;
+    }
+
+
     public class Shift
     {
         public int ShiftId { get; set; }
         public int EmployeeId { get; set; }
-        public DateTime WorkDate { get; set; } // 勤務日
-        public string ShiftType { get; set; } = "早番"; // "早番" / "遅番" / "代休" など
+        public int ShiftTypeId { get; set; } // シフト種別ID
+        public DateTime WorkDate { get; set; } // 勤務日 (時間なし)
+        public DateTime StartTime { get; set; } // 開始時間 (シフトの時間設定に基づく)
+        public DateTime EndTime { get; set; } // 終了時間 (シフトの時間設定に基づく)
 
         public DateTime CreatedAt { get; set; } = DateTime.Now;
         public DateTime UpdatedAt { get; set; } = DateTime.Now;
 
         public Employee? Employee { get; set; }
+        public ShiftType? ShiftType { get; set; }
     }
 
 

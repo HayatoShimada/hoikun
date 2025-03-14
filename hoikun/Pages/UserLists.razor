@@ -1,0 +1,73 @@
+﻿@page "/user-list"
+
+@inject IDbContextService dbContextService
+
+<h3>ユーザー一覧</h3>
+
+@if (users == null)
+{
+    <p>データを読み込んでいます...</p>
+}
+else
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>User ID</th>
+                <th>名前</th>
+                <th>Employee 登録</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var user in users)
+            {
+                <tr>
+                    <td>@user.UserId</td>
+                    <td>@user.Name</td>
+                    <td>
+                        @if (!employees.Any(e => e.UserId == user.UserId))
+                        {
+                            <button class="btn btn-primary" @onclick="() => AddEmployee(user)">追加</button>
+                        }
+                        else
+                        {
+                            <span class="text-success">登録済み</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<User>? users;
+    private List<Employee>? employees;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        users = await dbContextService.GetUsersAsync();
+        employees = await dbContextService.GetEmployeesAsync();
+    }
+
+    private async Task AddEmployee(User user)
+    {
+        var newEmployee = new Employee
+            {
+                UserId = user.UserId,
+                EmployeeCode = $"EMP{user.UserId:D4}",
+                EmployeeName = user.Name,
+                HireDate = DateTime.Now,
+                BasePay = 200000,
+                Department = "未設定"
+            };
+
+        await dbContextService.AddEmployeeAsync(newEmployee);
+        await LoadData(); // 一覧を更新
+    }
+}

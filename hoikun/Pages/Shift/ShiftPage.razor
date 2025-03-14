@@ -1,4 +1,4 @@
-﻿@page "/shift"
+﻿@page "/createshift"
 @inject UserStateService StateService
 @inject ApplicationDbContext dbContext
 @inject IDbContextService dbContextService
@@ -6,10 +6,21 @@
 
 <div>
     <DxTabs>
-        <DxTab Text="先生一覧" TabIconCssClass="tabs-icon-home tabs-icon"></DxTab>
+        <DxTabPage Text="先生一覧" TabIconCssClass="tabs-icon-home tabs-icon">
+            <div class="mt-4">
+                <ShiftManagement />
+
+            </div>
+        </DxTabPage>
         <DxTab Text="自分のシフト" TabIconCssClass="tabs-icon-support tabs-icon"></DxTab>
         <DxTab Text="月間シフト" TabIconCssClass="tabs-icon-products tabs-icon"></DxTab>
         <DxTab Text="週間シフト" TabIconCssClass="tabs-icon-products tabs-icon"></DxTab>
+        <DxTabPage Text="シフト設定" TabIconCssClass="tabs-icon-support tabs-icon">
+            <div class="mt-4">
+                <ShiftTypeManagement /> 
+            </div>
+        </DxTabPage>
+
     </DxTabs>
  </div>
 

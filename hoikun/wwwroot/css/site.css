@@ -124,3 +124,47 @@ html, body {
         background: url('/images/btn_login_press.png') no-repeat center center;
         background-size: cover;
     }
+
+
+/*シフト作成テーブル */
+.fixed-table {
+    table-layout: fixed; /* カラム幅を固定 */
+    width: 100%;
+}
+
+    .fixed-table th, .fixed-table td {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+.shift-select {
+    width: 100px; /* セレクトボックスの幅 */
+    min-width: 100px;
+}
+
+.table-responsive {
+    overflow-x: auto;
+    max-width: 100%;
+}
+
+.fixed-column {
+    width: 120px;
+    position: sticky;
+    left: 0;
+    background-color: white;
+    z-index: 2;
+}
+
+    .fixed-column:nth-child(2) {
+        left: 100px;
+    }
+
+    .fixed-column:nth-child(3) {
+        left: 200px;
+    }
+
+.shift-select {
+    width: 100px;
+    min-width: 100px;
+}

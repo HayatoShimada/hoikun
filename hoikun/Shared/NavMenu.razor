@@ -27,6 +27,8 @@
 
                     @if (UserStateService.Role == "admin")
                     {
+                        <DxTreeViewNode NavigateUrl="/user-list" Text="ユーザー管理" />
+
                         <DxTreeViewNode NavigateUrl="/createshift" Text="シフト作成" />
                         <DxTreeViewNode NavigateUrl="/schedule_shift" Text="シフト確認" />
                         <DxTreeViewNode NavigateUrl="/schedule_class" Text="クラス日程作成" />

@@ -408,4 +408,51 @@ public class DbContextService : IDbContextService
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task<List<User>> GetUsersAsync()
+    {
+        return await _dbContext.Users.ToListAsync();
+    }
+
+    public async Task AddEmployeeAsync(Employee employee)
+    {
+        _dbContext.Employees.Add(employee);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<ShiftType>> GetShiftTypesAsync()
+    {
+        return await _dbContext.ShiftTypes.ToListAsync();
+    }
+
+    public async Task AddShiftTypeAsync(ShiftType shiftType)
+    {
+        _dbContext.ShiftTypes.Add(shiftType);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdateShiftTypeAsync(ShiftType shiftType)
+    {
+        _dbContext.ShiftTypes.Update(shiftType);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteShiftTypeAsync(int shiftTypeId)
+    {
+        var shiftType = await _dbContext.ShiftTypes.FindAsync(shiftTypeId);
+        if (shiftType != null)
+        {
+            _dbContext.ShiftTypes.Remove(shiftType);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
+    public async Task DeleteShiftAsync(int shiftId)
+    {
+        var shift = await _dbContext.Shifts.FindAsync(shiftId);
+        if (shift != null)
+        {
+            _dbContext.Shifts.Remove(shift);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
 }

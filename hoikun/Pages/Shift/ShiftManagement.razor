@@ -1,13 +1,11 @@
-﻿@page "/shift-management"
-
-@inject IDbContextService dbContextService
+﻿@inject IDbContextService dbContextService
 
 <h3>シフト管理</h3>
 
 <!-- 年と月のセレクタ -->
 <div class="d-flex mb-3">
     <label class="me-2">年:</label>
-    <select class="form-select me-3" style="width:100px;" @bind="selectedYear" @bind:event="onchange">
+    <select class="form-select me-3" style="width:150px;" @bind="selectedYear" @bind:event="onchange">
         @for (int y = DateTime.Now.Year - 5; y <= DateTime.Now.Year + 5; y++)
         {
             <option value="@y">@y</option>
@@ -15,7 +13,7 @@
     </select>
 
     <label class="me-2">月:</label>
-    <select class="form-select" style="width:100px;" @bind="selectedMonth" @bind:event="onchange">
+    <select class="form-select" style="width:150px;" @bind="selectedMonth" @bind:event="onchange">
         @for (int m = 1; m <= 12; m++)
         {
             <option value="@m">@m</option>
@@ -25,49 +23,111 @@
 
 <!-- シフト管理テーブル -->
 <div class="table-responsive">
-    <table class="table table-bordered">
+    <table class="table table-bordered fixed-table">
         <thead>
             <tr>
-                <th>先生名</th>
+                <th class="fixed-column">先生名</th>
+
+                @if (shiftTypes != null && shiftTypes.Any())
+                {
+                    @foreach (var type in shiftTypes)
+                    {
+                        <th class="fixed-column">@type.Name 合計</th>
+                    }
+                }
+
                 @for (int i = 1; i <= daysInMonth; i++)
                 {
-                    <th>@i</th>
+                    var workDate = new DateTime(selectedYear, selectedMonth, i);
+                    var dayOfWeek = workDate.ToString("ddd");
+                    var isWeekend = workDate.DayOfWeek == DayOfWeek.Saturday || workDate.DayOfWeek == DayOfWeek.Sunday;
+
+                    <th style="width: 100px;" class="@(isWeekend ? "text-danger" : "")">
+                        @i<br>
+                        <span style="font-size: 12px;">@dayOfWeek</span>
+                    </th>
                 }
             </tr>
         </thead>
+
         <tbody>
-            @if (employees != null && shifts != null)
+            @if (employees != null && shifts != null && shiftTypes != null && shiftTypes.Any())
             {
                 @foreach (var employee in employees)
                 {
                     <tr>
-                        <td>@employee.EmployeeName</td>
+                        <td class="fixed-column">@employee.EmployeeName</td>
+
+                        @foreach (var type in shiftTypes)
+                        {
+                            var shiftCount = shifts.Count(s => s.EmployeeId == employee.EmployeeId && s.ShiftTypeId == type.ShiftTypeId);
+                            <td class="fixed-column">@shiftCount</td>
+                        }
+
                         @for (int i = 1; i <= daysInMonth; i++)
                         {
                             var workDate = new DateTime(selectedYear, selectedMonth, i);
                             var shift = shifts.FirstOrDefault(s => s.EmployeeId == employee.EmployeeId && s.WorkDate.Date == workDate.Date)
-                                ?? new Shift { EmployeeId = employee.EmployeeId, WorkDate = workDate, ShiftType = "" };
+                            ?? new Shift { EmployeeId = employee.EmployeeId, WorkDate = workDate, ShiftTypeId = shiftTypes.FirstOrDefault()?.ShiftTypeId ?? 0 };
 
                             <td>
-                                <select class="form-select" value="@shift.ShiftType" @onchange="(e) => UpdateShift(employee.EmployeeId, workDate, e.Value.ToString())">
-                                    <option value="早番">早番</option>
-                                    <option value="遅番">遅番</option>
-                                    <option value="代休">代休</option>
+                                <select class="form-select shift-select" @bind="shift.ShiftTypeId" @bind:after="() => HandleShiftUpdate(employee.EmployeeId, workDate, shift.ShiftTypeId)">
                                     <option value="">未設定</option>
+                                    @foreach (var type in shiftTypes)
+                                    {
+                                        <option value="@type.ShiftTypeId">@type.Name</option>
+                                    }
                                 </select>
+                                <br>
+                                <small>
+                                    @(shiftTypes.FirstOrDefault(t => t.ShiftTypeId == shift.ShiftTypeId)?.StartTime.ToString("HH:mm")) -
+                                    @(shiftTypes.FirstOrDefault(t => t.ShiftTypeId == shift.ShiftTypeId)?.EndTime.ToString("HH:mm"))
+                                </small>
                             </td>
-
                         }
                     </tr>
                 }
             }
         </tbody>
+
+        <tfoot>
+            <tr>
+                <th class="fixed-column">合計</th>
+
+                @if (shiftTypes != null && shiftTypes.Any())
+                {
+                    @foreach (var type in shiftTypes)
+                    {
+                        var totalShifts = shifts?.Count(s => s.ShiftTypeId == type.ShiftTypeId) ?? 0;
+                        <th class="fixed-column">@totalShifts</th>
+                    }
+
+                    @for (int i = 1; i <= daysInMonth; i++)
+                    {
+                        var workDate = new DateTime(selectedYear, selectedMonth, i);
+                        <th>
+                            <div style="font-size: 12px;">
+                                @foreach (var type in shiftTypes)
+                                {
+                                    var count = shifts?.Count(s => s.WorkDate.Date == workDate.Date && s.ShiftTypeId == type.ShiftTypeId) ?? 0;
+                                    <span>@type.Name: @count</span>
+
+                                    <br>
+                                }
+                            </div>
+                        </th>
+                    }
+                }
+
+            </tr>
+        </tfoot>
     </table>
 </div>
 
 @code {
     private List<Employee>? employees;
     private List<Shift>? shifts;
+    private List<ShiftType>? shiftTypes;
     private int selectedYear = DateTime.Now.Year;
     private int selectedMonth = DateTime.Now.Month;
     private int daysInMonth;
@@ -82,38 +142,63 @@
     {
         employees = await dbContextService.GetEmployeesAsync();
         shifts = await dbContextService.GetShiftsAsync(selectedYear, selectedMonth);
+        shiftTypes = await dbContextService.GetShiftTypesAsync();
     }
 
-    private async Task OnYearOrMonthChanged()
+    private async Task UpdateShift(int employeeId, DateTime workDate, int shiftTypeId)
     {
-        UpdateDaysInMonth();
-        await LoadData();
-    }
-
-    private void UpdateDaysInMonth()
-    {
-        daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
-    }
-
-    private async Task UpdateShift(int employeeId, DateTime workDate, string shiftType)
-    {
+        var shiftType = shiftTypes.FirstOrDefault(t => t.ShiftTypeId == shiftTypeId);
         var shift = shifts.FirstOrDefault(s => s.EmployeeId == employeeId && s.WorkDate.Date == workDate.Date);
 
         if (shift == null)
         {
             shift = new Shift
-            {
-                EmployeeId = employeeId,
-                WorkDate = workDate,
-                ShiftType = shiftType
-            };
+                {
+                    EmployeeId = employeeId,
+                    WorkDate = workDate,
+                    ShiftTypeId = shiftTypeId,
+                    StartTime = workDate.Date + shiftType.StartTime.ToTimeSpan(),
+                    EndTime = workDate.Date + shiftType.EndTime.ToTimeSpan()
+                };
             shifts.Add(shift);
             await dbContextService.AddShiftAsync(shift);
         }
         else
         {
-            shift.ShiftType = shiftType;
+            shift.ShiftTypeId = shiftTypeId;
+            shift.StartTime = workDate.Date + shiftType.StartTime.ToTimeSpan();
+            shift.EndTime = workDate.Date + shiftType.EndTime.ToTimeSpan();
             await dbContextService.UpdateShiftAsync(shift);
         }
+    }
+
+    private async Task DeleteShift(int employeeId, DateTime workDate)
+    {
+        var shift = shifts.FirstOrDefault(s => s.EmployeeId == employeeId && s.WorkDate.Date == workDate.Date);
+
+        if (shift != null)
+        {
+            shifts.Remove(shift);
+            await dbContextService.DeleteShiftAsync(shift.ShiftId);
+        }
+    }
+
+
+    private async Task HandleShiftUpdate(int employeeId, DateTime workDate, int? shiftTypeId)
+    {
+        if (shiftTypeId == null || shiftTypeId.ToString() == "") // 「未設定」が選択された場合
+        {
+            await DeleteShift(employeeId, workDate);
+        }
+        else
+        {
+            await UpdateShift(employeeId, workDate, shiftTypeId.Value);
+        }
+    }
+
+
+    private void UpdateDaysInMonth()
+    {
+        daysInMonth = DateTime.DaysInMonth(selectedYear, selectedMonth);
     }
 }

@@ -77,4 +77,19 @@ public interface IDbContextService
     Task AddShiftAsync(Shift shift);
     Task UpdateShiftAsync(Shift shift);
 
+    // ユーザー一覧を取得
+    Task<List<User>> GetUsersAsync();
+
+    // Employee の追加
+    Task AddEmployeeAsync(Employee employee);
+
+    // シフトタイプの取得
+    Task<List<ShiftType>> GetShiftTypesAsync();
+
+    Task AddShiftTypeAsync(ShiftType shiftType);
+    Task UpdateShiftTypeAsync(ShiftType shiftType);
+    Task DeleteShiftTypeAsync(int shiftTypeId);
+
+    Task DeleteShiftAsync(int shiftId);
+
 }
