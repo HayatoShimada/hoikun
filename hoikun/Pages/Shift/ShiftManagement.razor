@@ -72,7 +72,6 @@
 
                             <td>
                                 <select class="form-select shift-select" @bind="shift.ShiftTypeId" @bind:after="() => HandleShiftUpdate(employee.EmployeeId, workDate, shift.ShiftTypeId)">
-                                    <option value="">未設定</option>
                                     @foreach (var type in shiftTypes)
                                     {
                                         <option value="@type.ShiftTypeId">@type.Name</option>
@@ -186,7 +185,7 @@
 
     private async Task HandleShiftUpdate(int employeeId, DateTime workDate, int? shiftTypeId)
     {
-        if (shiftTypeId == null || shiftTypeId.ToString() == "") // 「未設定」が選択された場合
+        if (shiftTypeId == 0 || shiftTypeId.ToString() == "") // 「未設定」が選択された場合
         {
             await DeleteShift(employeeId, workDate);
         }
