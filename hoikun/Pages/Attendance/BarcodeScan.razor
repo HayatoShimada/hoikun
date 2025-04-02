@@ -4,7 +4,6 @@
 @using QRCoder
 
 
-
 <QRCodeScanner Width="600" ShowOutput="true" LoadingMessage="Loading video stream (please make sure you have a camera enabled)" OutputMessage="No QR code detected." />
 
 <DxGridLayout CssClass="h-100" ColumnSpacing="16px" RowSpacing="16px">
@@ -29,27 +28,12 @@
 
         <DxGridLayoutItem Area="item01">
             <Template>
-                <div id="camera"></div>
+                <div id="qr-reader" style="width:300px; height:300px;"></div>
+                <p>Scanned QR Code: @ScannedBarcode</p>
             </Template>
         </DxGridLayoutItem>
 
-        <DxGridLayoutItem Area="item02">
-            <Template>
-                <div id="my_result">***</div>
-            </Template>
-        </DxGridLayoutItem>
-
-        <DxGridLayoutItem Area="item03">
-            <Template>
-                <div id="my_barcode"></div>
-            </Template>
-        </DxGridLayoutItem>
-
-        <DxGridLayoutItem Area="item04">
-            <Template>
-                <DxButton Click="StartCapture">スキャン開始</DxButton>
-            </Template>
-        </DxGridLayoutItem>
+        
     </Items>
 </DxGridLayout>
 
@@ -63,79 +47,28 @@
     private DotNetObjectReference<BarcodeScan>? objRef;
     private string? ScannedBarcode;
 
+
     private QRCodeScannerJsInterop? _qrCodeScannerJsInterop;
     private Action<string>? _onQrCodeScanAction;
 
-    protected override async Task OnInitializedAsync()
-    {
-        _qrCodeScannerJsInterop = new QRCodeScannerJsInterop(JS);
-    }
-
-
-
-    private static void OnQrCodeScan(string code)
-    {
-        Console.WriteLine($"OnQrCodeScan {code}");
-    }
-
-    private bool _isJsInitialized = false;
-
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender && !_isJsInitialized)
+        if (firstRender)
         {
-            _isJsInitialized = true;
-            await _qrCodeScannerJsInterop.Init(_onQrCodeScanAction);
+            // ↓ DotNetObjectReference.Create(this) でコンポーネント自身を渡す
+            objRef = DotNetObjectReference.Create(this);
+            await JS.InvokeVoidAsync("startQrScanner", objRef);
         }
-    }
 
-
-
-    protected override void OnAfterRender(bool firstRender)
-    {
-
-        try
-        {
-            if (firstRender)
-            {
-                objRef?.Dispose(); // 既存のオブジェクトを破棄
-                objRef = DotNetObjectReference.Create(this);
-                Console.WriteLine("DotNetObjectReference created.");
-            }
-            base.OnAfterRender(firstRender);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("OnAfterRender error: " + ex.Message);
-        }
-    }
-
-    private async Task StartCapture()
-    {
-        try
-        {
-            if (objRef != null)
-            {
-                Console.WriteLine("Starting capture with JS...");
-                await JS.InvokeVoidAsync("barcodeScan.startCapture", objRef);
-            }
-            else
-            {
-                Console.WriteLine("Error: DotNetObjectReference is null.");
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine("StartCapture error: " + ex.Message);
-        }
     }
 
     [JSInvokable]
-    public void CodeDetected(string barcode)
+    public Task OnQrCodeScanned(string data)
     {
-        Console.WriteLine($"CodeDetected received: {barcode}");
-        ScannedBarcode = barcode;
+        ScannedBarcode = data;
+        Console.WriteLine("Received QR Code: " + data);
         StateHasChanged();
+        return Task.CompletedTask;
     }
 
     public void Dispose()
