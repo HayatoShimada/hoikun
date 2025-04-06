@@ -1,21 +1,24 @@
 ﻿let dotNetHelper = null;
+let html5QrCode = null;
 
 function startQrScanner(dotNetObjRef) {
     dotNetHelper = dotNetObjRef;
 
-    const html5QrCode = new Html5Qrcode("qr-reader");
+    if (html5QrCode === null) {
+        html5QrCode = new Html5Qrcode("qr-reader");
+    }
+
     const config = { fps: 10, qrbox: 250 };
 
     html5QrCode.start(
         { facingMode: "environment" },
         config,
-        (decodedText, decodedResult) => {
+        (decodedText) => {
             console.log(`QR Code detected: ${decodedText}`);
             dotNetHelper.invokeMethodAsync("OnQrCodeScanned", decodedText);
-            html5QrCode.stop(); // 読み取り後に停止（必要に応じて）
+            html5QrCode.stop();
         },
         (errorMessage) => {
-            // 読み取り失敗時
             console.warn(`QR scan error: ${errorMessage}`);
         }
     ).catch(err => {

@@ -1,101 +1,58 @@
 ﻿@page "/BarcodeScan"
-@implements IDisposable
 @using Microsoft.JSInterop
-@using QRCoder
+@inject IJSRuntime JS
 @inject IDbContextService dbContextService
+@using hoikun.Data
 
+<div class="container mt-4">
+    <h2 class="text-center mb-4">勤退バーコードスキャン</h2>
 
-<QRCodeScanner Width="600" ShowOutput="true" LoadingMessage="Loading video stream (please make sure you have a camera enabled)" OutputMessage="No QR code detected." />
+    <div id="qr-reader" class="qr-reader-container"></div>
 
-<DxGridLayout CssClass="h-100" ColumnSpacing="16px" RowSpacing="16px">
-    <Rows>
-        <DxGridLayoutRow Areas="header" />
-        <DxGridLayoutRow Areas="item01" />
-        <DxGridLayoutRow Areas="item02" />
-        <DxGridLayoutRow Areas="item03" />
-        <DxGridLayoutRow Areas="item04" />
-    </Rows>
+    <p class="text-center mt-3">読み取ったQRコード: @ScannedBarcode</p>
 
-    <Columns>
-        <DxGridLayoutColumn />
-    </Columns>
-    
-    <Items>
-        <DxGridLayoutItem Area="header">
-            <Template>
-                <h2>勤退バーコードスキャン</h2>
-            </Template>
-        </DxGridLayoutItem>
+    <div class="form-group mt-4 text-center">
+        <label>リロードまでの秒数:</label>
+        <input type="number" min="1" max="30" @bind="ReloadSeconds" class="form-control d-inline-block" style="width: 100px; margin-left: 10px;" />
+    </div>
 
-        <DxGridLayoutItem Area="item01">
-            <Template>
-                <div id="qr-reader" style="width:500px; height:500px;"></div>
-                <p>Scanned QR Code: @ScannedBarcode</p>
-            </Template>
-        </DxGridLayoutItem>
-
-
-    </Items>
-</DxGridLayout>
-
-<!-- Bootstrapモーダル -->
-<div class="modal fade" id="scanResultModal" tabindex="-1" aria-labelledby="scanResultModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="scanResultModalLabel">@DialogTitle</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
-            </div>
-            <div class="modal-body">
-                @DialogMessage
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+    @if (IsModalVisible)
+    {
+        <div class="modal fade show d-block" tabindex="-1" style="background-color: rgba(0,0,0,0.5);">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">@DialogTitle</h5>
+                    </div>
+                    <div class="modal-body">
+                        @((MarkupString)DialogMessage)
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
-
-<DxMessageBox @bind-Visible="MessageBoxVisible"
-              Title="@DialogTitle"
-              Text="@DialogMessage"
-              CancelButtonText="OK"
-              CloseOnOutsideClick="true"
-              RenderStyle="@BoxRenderStyle"
-              Type="@MessageBoxType.Confirmation"
-              Closed="@Closed">
-</DxMessageBox>
-
-
-<div class="mt-3">
-    <h4>スキャン結果: @ScannedBarcode</h4>
+    }
 </div>
 
 @code {
-    [Inject] private IJSRuntime JS { get; set; } = default!;
-
-    private DotNetObjectReference<BarcodeScan>? objRef;
     private string? ScannedBarcode;
-
-    private List<TimeCard> timeCards = new();
-    private List<User>? users = new();
-
+    private List<User>? users;
     private string DialogTitle = "";
     private string DialogMessage = "";
-    bool MessageBoxVisible { get; set; } = false;
-    MessageBoxRenderStyle BoxRenderStyle = new();
+    private bool IsModalVisible = false;
+    private int ReloadSeconds = 3;
+    private bool _scannerStarted = false;
+    private DotNetObjectReference<BarcodeScan>? objRef;
 
     protected override async Task OnInitializedAsync()
     {
-        timeCards = await dbContextService.GetTimeCardAsync(query =>
-            query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
         users = await dbContextService.GetUserAsync("Teacher");
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        if (firstRender)
+        if (firstRender && !_scannerStarted)
         {
+            _scannerStarted = true;
             objRef = DotNetObjectReference.Create(this);
             await JS.InvokeVoidAsync("startQrScanner", objRef);
         }
@@ -105,28 +62,21 @@
     public async Task OnQrCodeScanned(string data)
     {
         ScannedBarcode = data;
-
         var today = DateTime.Today;
-
         var matchedUser = users?.FirstOrDefault(u => u.AADB2CUserId == data);
         string userName = matchedUser?.Name ?? "（該当ユーザーなし）";
         string userInfo = $"ユーザー名: {userName}";
 
-        string clockInTime = "-";
-        string clockOutTime = "-";
+        string clockInTime = "-", clockOutTime = "-";
 
         if (matchedUser?.Employee != null)
         {
             var employeeId = matchedUser.Employee.EmployeeId;
-
-            // ✅ シフト取得
-            var shifts = await dbContextService.GetShiftsAsync(q =>
-                q.Where(s => s.EmployeeId == employeeId && s.WorkDate == today));
+            var shifts = await dbContextService.GetShiftsAsync(q => q.Where(s => s.EmployeeId == employeeId && s.WorkDate == today));
             bool hasShift = shifts.Any();
 
             if (hasShift)
             {
-                // ✅ タイムカード取得
                 var timeCardsToday = await dbContextService.GetTimeCardAsync(q =>
                     q.Where(tc => tc.EmployeeId == employeeId && tc.WorkDate == today));
                 var existingTimeCard = timeCardsToday.FirstOrDefault();
@@ -141,17 +91,14 @@
                             CreatedAt = DateTime.Now,
                             UpdatedAt = DateTime.Now
                         };
-
                     await dbContextService.AddTimeCardAsync(newCard);
                     clockInTime = newCard.ClockIn?.ToString("HH:mm") ?? "-";
-
                     ShowModal("出勤打刻成功", $"{userInfo}<br>出勤時間: {clockInTime}<br>（TimeCardが新規作成されました）");
                 }
                 else
                 {
                     clockInTime = existingTimeCard.ClockIn?.ToString("HH:mm") ?? "-";
                     clockOutTime = existingTimeCard.ClockOut?.ToString("HH:mm") ?? "-";
-
                     ShowModal("すでに打刻済み", $"{userInfo}<br>出勤時間: {clockInTime}<br>退勤時間: {clockOutTime}");
                 }
             }
@@ -160,25 +107,29 @@
                 ShowModal("シフト未登録", $"{userInfo}<br>本日のシフトが登録されていません。");
             }
         }
+        else
+        {
+            ShowModal("ユーザー不明", $"{userInfo}<br>QRコードのユーザーが見つかりません。");
+        }
 
-
-        MessageBoxVisible = true;
         StateHasChanged();
-    }
-
-
-
-    private bool Result { get; set; } = false;
-    
-    void Closed(bool Confirmed)
-    {
-        Result = Confirmed;
     }
 
     void ShowModal(string title, string message)
     {
         DialogTitle = title;
         DialogMessage = message;
+        IsModalVisible = true;
+
+        _ = Task.Run(async () =>
+        {
+            await Task.Delay(ReloadSeconds * 1000);
+            await InvokeAsync(() =>
+            {
+                IsModalVisible = false;
+                JS.InvokeVoidAsync("location.reload");
+            });
+        });
     }
 
     public void Dispose()
@@ -186,4 +137,14 @@
         objRef?.Dispose();
     }
 }
-
+<style>
+    .qr-reader-container {
+        width: 100%;
+        max-width: 640px;
+        height: 480px;
+        margin: 0 auto;
+        border: 2px solid #ccc;
+        border-radius: 10px;
+        background-color: #000;
+    }
+</style>
