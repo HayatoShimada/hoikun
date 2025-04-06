@@ -1,0 +1,92 @@
+﻿@page "/timecard-history"
+@inject IDbContextService dbContextService
+@using Microsoft.EntityFrameworkCore
+
+
+<h3>打刻履歴（タイムカード）</h3>
+
+<div class="row mb-3">
+    <div class="col-md-3">
+        <label>年:</label>
+        <select class="form-select" @bind="selectedYear">
+            @foreach (var y in Years)
+            {
+                <option value="@y">@y</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3">
+        <label>月:</label>
+        <select class="form-select" @bind="selectedMonth">
+            @for (int m = 1; m <= 12; m++)
+            {
+                <option value="@m">@m</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-6">
+        <label>ユーザー:</label>
+        <select class="form-select" @bind="selectedUserId">
+            @foreach (var user in users)
+            {
+                <option value="@user.UserId">@user.Name</option>
+            }
+        </select>
+    </div>
+</div>
+
+<button class="btn btn-primary mb-3" @onclick="LoadTimeCards">表示</button>
+
+@if (timeCards != null)
+{
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>日付</th>
+                <th>出勤</th>
+                <th>退勤</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var card in timeCards.OrderBy(tc => tc.WorkDate))
+            {
+                <tr>
+                    <td>@card.WorkDate.ToString("yyyy-MM-dd")</td>
+                    <td>@(card.ClockIn?.ToString("HH:mm") ?? "-")</td>
+                    <td>@(card.ClockOut?.ToString("HH:mm") ?? "-")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<User> users = new();
+    private List<TimeCard> timeCards = new();
+
+    private int selectedYear = DateTime.Today.Year;
+    private int selectedMonth = DateTime.Today.Month;
+    private int selectedUserId;
+
+    private List<int> Years => Enumerable.Range(2020, 6).ToList(); // 2020〜2025年など
+
+    protected override async Task OnInitializedAsync()
+    {
+        users = await dbContextService.GetUsersAsync();
+        selectedUserId = users.FirstOrDefault()?.UserId ?? 0;
+    }
+
+    private async Task LoadTimeCards()
+    {
+        DateTime start = new DateTime(selectedYear, selectedMonth, 1);
+        DateTime end = start.AddMonths(1).AddDays(-1);
+
+        timeCards = await dbContextService.GetTimeCardAsync(q =>
+            q.Where(tc =>
+                tc.Employee != null &&
+                tc.Employee.UserId == selectedUserId &&
+                tc.WorkDate >= start &&
+                tc.WorkDate <= end
+            ).Include(tc => tc.Employee!));
+    }
+}
