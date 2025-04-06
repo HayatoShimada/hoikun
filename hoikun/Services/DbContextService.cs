@@ -473,5 +473,16 @@ public class DbContextService : IDbContextService
         await _dbContext.SaveChangesAsync();
     }
 
+    public async Task AddPickupRecordAsync(PickupRecord record) // ★ 実装
+    {
+        _dbContext.Add(record);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<PickupRecord>> GetPickupRecordsAsync(Func<IQueryable<PickupRecord>, IQueryable<PickupRecord>> queryModifier)
+    {
+        return await queryModifier(_dbContext.Set<PickupRecord>()).ToListAsync();
+    }
+
 
 }

@@ -16,6 +16,12 @@ namespace hoikun.Data
         // -- DbSet 定義 --
         public DbSet<User> Users => Set<User>();
         public DbSet<Children> Childrens => Set<Children>();
+
+        public DbSet<PickupRecord> PickupRecords => Set<PickupRecord>();
+
+        public DbSet<PickupTimeSetting> PickupTimeSettings => Set<PickupTimeSetting>();
+
+
         public DbSet<EmergencyContact> EmergencyContacts => Set<EmergencyContact>();
         public DbSet<Class> Classes => Set<Class>();
         public DbSet<Appointment> Appointments => Set<Appointment>();
@@ -189,6 +195,13 @@ namespace hoikun.Data
             modelBuilder.Entity<FormField>()
                 .Property(f => f.OptionsJson)
                 .HasColumnType("json");
+
+            modelBuilder.Entity<PickupRecord>()
+    .HasOne(pr => pr.Children)
+    .WithMany()
+    .HasForeignKey(pr => pr.ChildrenId)
+    .OnDelete(DeleteBehavior.Cascade);
+
         }
     }
 
@@ -258,6 +271,12 @@ namespace hoikun.Data
         public int ClassId { get; set; }
         public int UserId { get; set; }
         public string? Name { get; set; }
+
+        public int PickupType { get; set; }  // 第1種～第5種
+
+        public TimeOnly? PickupExpectedTime { get; set; }
+
+
         public DateTime? Birthday { get; set; }
         public string? AllergyInfo { get; set; }
         public string? Notes { get; set; }
@@ -267,6 +286,23 @@ namespace hoikun.Data
 
         public virtual Class Class { get; set; } = null!;
         public virtual User User { get; set; } = null!;
+    }
+
+    public class PickupTimeSetting
+    {
+        public int Id { get; set; }
+        public int PickupType { get; set; } // 1～5
+        public TimeSpan PickupTime { get; set; } // 例: 15:30
+    }
+
+    public class PickupRecord
+    {
+        public int PickupRecordId { get; set; }
+        public int ChildrenId { get; set; }
+        public DateTime PickupTime { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        public virtual Children? Children { get; set; }
     }
 
     /// <summary>クラス(組)情報</summary>

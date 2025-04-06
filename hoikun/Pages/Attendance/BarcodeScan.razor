@@ -5,7 +5,7 @@
 @using hoikun.Data
 
 <div class="container mt-4">
-    <h2 class="text-center mb-4">勤退バーコードスキャン</h2>
+    <h2 class="text-center mb-4">QRコードスキャン</h2>
 
     <div id="qr-reader" class="qr-reader-container"></div>
 
@@ -45,7 +45,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        users = await dbContextService.GetUserAsync("Teacher");
+        users = await dbContextService.GetUsersAsync(); // 親と職員の両方を対象
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -62,11 +62,94 @@
     public async Task OnQrCodeScanned(string data)
     {
         ScannedBarcode = data;
-        var today = DateTime.Today;
         var matchedUser = users?.FirstOrDefault(u => u.AADB2CUserId == data);
+
+        if (matchedUser == null)
+        {
+            ShowModal("ユーザー不明", $"該当するユーザーが見つかりません: {data}");
+            return;
+        }
+
+        if (matchedUser.Role == "parent")
+        {
+            await HandlePickupScanAsync(matchedUser);
+        }
+        else
+        {
+            await HandleTimeCardScanAsync(matchedUser);
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task HandlePickupScanAsync(User user)
+    {
+        var today = DateTime.Today;
+
+        var children = await dbContextService.GetChildrenAsync(q =>
+            q.Where(c => c.UserId == user.UserId));
+
+        if (children.Count == 0)
+        {
+            ShowModal("子ども情報なし", $"ユーザー {user.Name} に紐づく園児情報が見つかりません。");
+            return;
+        }
+
+        List<string> results = new();
+
+        foreach (var child in children)
+        {
+            // すでに PickupRecord が存在するか確認
+            var existingRecords = await dbContextService.GetPickupRecordsAsync(q =>
+                q.Where(r => r.ChildrenId == child.Id && r.PickupTime.Date == today));
+
+            if (existingRecords.Any())
+            {
+                results.Add($"{child.Name}：すでにお迎え済み");
+                continue;
+            }
+
+            // 現在時刻と予定時刻の差を計算（予定時刻が未設定なら「設定なし」）
+            string timingStatus;
+            if (child.PickupExpectedTime.HasValue)
+            {
+                var now = DateTime.Now.TimeOfDay;
+                var expected = child.PickupExpectedTime.Value.ToTimeSpan();
+                var diff = (now - expected).TotalMinutes;
+
+                if (Math.Abs(diff) <= 5)
+                    timingStatus = "時間通り";
+                else if (diff > 5)
+                    timingStatus = $"{Math.Floor(diff)}分遅れ";
+                else
+                    timingStatus = $"{Math.Floor(Math.Abs(diff))}分早い";
+            }
+            else
+            {
+                timingStatus = "予定時刻未設定";
+            }
+
+            var record = new PickupRecord
+                {
+                    ChildrenId = child.Id,
+                    PickupTime = DateTime.Now,
+                    CreatedAt = DateTime.Now
+                };
+
+            await dbContextService.AddPickupRecordAsync(record);
+
+            results.Add($"{child.Name}：{timingStatus}");
+        }
+
+        ShowModal("お迎え記録", $"ユーザー: {user.Name}<br>" + string.Join("<br>", results));
+    }
+
+
+    private async Task HandleTimeCardScanAsync(User matchedUser)
+    {
+        var today = DateTime.Today;
         string userName = matchedUser?.Name ?? "（該当ユーザーなし）";
         string userInfo = $"ユーザー名: {userName}";
-
         string clockInTime = "-", clockOutTime = "-";
 
         if (matchedUser?.Employee != null)
@@ -111,8 +194,6 @@
         {
             ShowModal("ユーザー不明", $"{userInfo}<br>QRコードのユーザーが見つかりません。");
         }
-
-        StateHasChanged();
     }
 
     void ShowModal(string title, string message)
