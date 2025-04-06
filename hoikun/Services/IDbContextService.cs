@@ -92,4 +92,11 @@ public interface IDbContextService
 
     Task DeleteShiftAsync(int shiftId);
 
+    Task AddTimeCardAsync(TimeCard timeCard);
+
+    Task<List<Shift>> GetShiftsAsync(Func<IQueryable<Shift>, IQueryable<Shift>> queryModifier);
+
+    Task UpdateEmployeeAsync(Employee employee);
+
+
 }

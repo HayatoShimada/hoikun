@@ -1,12 +1,11 @@
 ﻿@page "/user-list"
-
 @inject IDbContextService dbContextService
 
-<h3>ユーザー一覧</h3>
+<h3>ユーザー一覧と給与情報</h3>
 
-@if (users == null)
+@if (users == null || employees == null)
 {
-    <p>データを読み込んでいます...</p>
+    <p>読み込み中...</p>
 }
 else
 {
@@ -15,25 +14,40 @@ else
             <tr>
                 <th>User ID</th>
                 <th>名前</th>
-                <th>Employee 登録</th>
+                <th>部署</th>
+                <th>基本給</th>
+                <th>操作</th>
             </tr>
         </thead>
         <tbody>
             @foreach (var user in users)
             {
+                var emp = employees.FirstOrDefault(e => e.UserId == user.UserId);
+
                 <tr>
                     <td>@user.UserId</td>
                     <td>@user.Name</td>
-                    <td>
-                        @if (!employees.Any(e => e.UserId == user.UserId))
-                        {
+
+                    @if (emp != null)
+                    {
+                        <td>
+                            <input class="form-control" @bind="emp.Department" />
+                        </td>
+                        <td>
+                            <input class="form-control" type="number" step="1000" @bind="emp.BasePay" />
+                        </td>
+
+                        <td>
+                            <button class="btn btn-success" @onclick="() => SaveEmployee(emp)">保存</button>
+                        </td>
+                    }
+                    else
+                    {
+                        <td colspan="4">未登録</td>
+                        <td>
                             <button class="btn btn-primary" @onclick="() => AddEmployee(user)">追加</button>
-                        }
-                        else
-                        {
-                            <span class="text-success">登録済み</span>
-                        }
-                    </td>
+                        </td>
+                    }
                 </tr>
             }
         </tbody>
@@ -64,10 +78,16 @@ else
                 EmployeeName = user.Name,
                 HireDate = DateTime.Now,
                 BasePay = 200000,
-                Department = "未設定"
+                Department = "未設定",
             };
 
         await dbContextService.AddEmployeeAsync(newEmployee);
-        await LoadData(); // 一覧を更新
+        await LoadData();
+    }
+
+    private async Task SaveEmployee(Employee emp)
+    {
+        await dbContextService.UpdateEmployeeAsync(emp);
+        await LoadData();
     }
 }

@@ -268,7 +268,7 @@ public class DbContextService : IDbContextService
 
     public async Task<List<User>?> GetUserAsync(string? role)
     {
-        IQueryable<User> query = _dbContext.Users;
+        IQueryable<User> query = _dbContext.Users.Include(u => u.Employee);
 
         if (role != null)
         {
@@ -455,4 +455,23 @@ public class DbContextService : IDbContextService
             await _dbContext.SaveChangesAsync();
         }
     }
+
+    public async Task AddTimeCardAsync(TimeCard timeCard)
+    {
+        _dbContext.TimeCards.Add(timeCard);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<List<Shift>> GetShiftsAsync(Func<IQueryable<Shift>, IQueryable<Shift>> queryModifier)
+    {
+        return await queryModifier(_dbContext.Shifts).ToListAsync();
+    }
+
+    public async Task UpdateEmployeeAsync(Employee employee)
+    {
+        _dbContext.Employees.Update(employee);
+        await _dbContext.SaveChangesAsync();
+    }
+
+
 }
