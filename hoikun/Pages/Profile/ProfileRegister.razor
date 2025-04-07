@@ -234,7 +234,7 @@
         Data.Children.Add(new Children
             {
                 Name = "",
-                ClassId = 1,
+                ClassId = 2,
                 Rank = Data.Children.Count + 1,
                 AllergyInfo = "",
                 Birthday = DateTime.Now.AddYears(-3),
@@ -253,7 +253,7 @@
 
     private void HandleUploadCompleted(bool isSuccess)
     {
-        IsFileUploadedSuccessfully = isSuccess;
+       IsFileUploadedSuccessfully = isSuccess;
 
         if (isSuccess)
         {
@@ -271,20 +271,35 @@
         {
             try
             {
-                // Assign UserId to all children and contacts
-                foreach (var child in Data.Children)
+                // 入力されている Children だけ抽出（例：名前または誕生日が空でない）
+                var validChildren = Data.Children
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Name) || c.Birthday != null)
+                    .ToList();
+
+                foreach (var child in validChildren)
                 {
                     child.UserId = user.UserId;
                 }
 
-                foreach (var contact in Data.Contacts)
+                // 入力されている緊急連絡先だけ抽出（例：電話番号または続柄が空でない）
+                var validContacts = Data.Contacts
+                    .Where(c => !string.IsNullOrWhiteSpace(c.Tel) || !string.IsNullOrWhiteSpace(c.Relation))
+                    .ToList();
+
+                foreach (var contact in validContacts)
                 {
                     contact.UserId = user.UserId;
                 }
 
+                if (validChildren.Count == 0 && validContacts.Count == 0)
+                {
+                    FormSubmitResult = "児童情報または緊急連絡先を少なくとも1つ入力してください。";
+                    return;
+                }
+
                 // Save to database
-                dbContext.Childrens.AddRange(Data.Children);
-                dbContext.EmergencyContacts.AddRange(Data.Contacts);
+                dbContext.Childrens.AddRange(validChildren);
+                dbContext.EmergencyContacts.AddRange(validContacts);
                 await dbContext.SaveChangesAsync();
 
                 FormSubmitResult = "登録が完了しました。";
@@ -297,10 +312,9 @@
         else
         {
             FormSubmitResult = $"通園経路画像をファイルをアップロードしてください。";
-
         }
-
     }
+
 
     private void AddChild()
     {
@@ -308,7 +322,7 @@
             {
                 Name = "",
                 Rank = Data.Children.Count + 1,
-                ClassId = 1,
+                ClassId = 2,
                 AllergyInfo = "",
                 Birthday = DateTime.Now.AddYears(-3),
                 Notes = "",

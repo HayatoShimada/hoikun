@@ -1,0 +1,85 @@
+﻿@page "/pickup-times"
+@using hoikun.Data
+@inject IDbContextService dbContextService
+
+<h3>お迎え時間の設定</h3>
+
+@if (pickupTimes == null)
+{
+    <p>読み込み中...</p>
+}
+else
+{
+    <DxGrid Data="@pickupTimes"
+            EditMode="GridEditMode.EditRow"
+            EditModelSaving="OnEditModelSaving"
+            EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
+            CustomizeEditModel="OnCustomizeEditModel">
+        <Columns>
+            <DxGridCommandColumn Width="150px" />
+
+            <DxGridDataColumn FieldName="PickupType" Caption="種別">
+                <CellDisplayTemplate>
+                    @{
+                        var selected = pickupTypeOptions.FirstOrDefault(x => x.Key == context.Value?.ToString());
+                    }
+                    @selected.Value
+                </CellDisplayTemplate>
+
+                <CellEditTemplate>
+                    <DxComboBox Data="@pickupTypeOptions"
+                                TextFieldName="Value"
+                                ValueFieldName="Key"
+                                NullText="選択..."
+                                @bind-Value="((PickupTimeSetting)context.EditModel).PickupType" />
+                </CellEditTemplate>
+            </DxGridDataColumn>
+
+            <DxGridDataColumn FieldName="Hour" Caption="時刻 (時)" />
+            <DxGridDataColumn FieldName="Minute" Caption="時刻 (分)" />
+        </Columns>
+    </DxGrid>
+}
+
+@code {
+    private List<PickupTimeSetting>? pickupTimes;
+
+    private List<KeyValuePair<string, string>> pickupTypeOptions = new()
+    {
+        new("1", "第1種"),
+        new("2", "第2種"),
+        new("3", "第3種"),
+        new("4", "第4種"),
+        new("5", "第5種")
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        pickupTimes = await dbContextService.GetPickupTimeSettingsAsync();
+    }
+
+    void OnCustomizeEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var model = (PickupTimeSetting)e.EditModel;
+            model.PickupType = "1";
+            model.Hour = 17;
+            model.Minute = 0;
+        }
+    }
+
+    async Task OnEditModelSaving(GridEditModelSavingEventArgs e)
+    {
+        var model = (PickupTimeSetting)e.EditModel;
+        if (e.IsNew)
+        {
+            await dbContextService.AddPickupTimeSettingAsync(model);
+        }
+        else
+        {
+            await dbContextService.UpdatePickupTimeSettingAsync(model);
+        }
+        pickupTimes = await dbContextService.GetPickupTimeSettingsAsync();
+    }
+}

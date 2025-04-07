@@ -268,7 +268,7 @@ namespace hoikun.Data
     public class Children
     {
         public int Id { get; set; }
-        public int ClassId { get; set; }
+        public int? ClassId { get; set; } = 2;
         public int UserId { get; set; }
         public string? Name { get; set; }
 
@@ -290,17 +290,29 @@ namespace hoikun.Data
 
     public class PickupTimeSetting
     {
-        public int Id { get; set; }
-        public int PickupType { get; set; } // 1～5
-        public TimeSpan PickupTime { get; set; } // 例: 15:30
+        public int PickupTimeSettingId { get; set; }
+
+        public string PickupType { get; set; } = string.Empty;
+        public int Hour { get; set; }
+        public int Minute { get; set; }
+
+        public virtual ICollection<Children> Children { get; set; } = new List<Children>();
     }
+
+
 
     public class PickupRecord
     {
         public int PickupRecordId { get; set; }
         public int ChildrenId { get; set; }
+
+        public int? PickupType { get; set; }  //遅延時間（早ければマイナス）
+
         public DateTime PickupTime { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        public int? DelayMinutes { get; set; }  // 遅延時間（早ければマイナス）
+
 
         public virtual Children? Children { get; set; }
     }

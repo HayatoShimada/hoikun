@@ -12,8 +12,8 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250127103902_AddCaption")]
-    partial class AddCaption
+    [Migration("20250406143525_InitSchema")]
+    partial class InitSchema
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -111,6 +111,15 @@ namespace hoikun.Migrations
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<TimeOnly?>("PickupExpectedTime")
+                        .HasColumnType("time");
+
+                    b.Property<int?>("PickupTimeSettingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PickupType")
+                        .HasColumnType("int");
+
                     b.Property<int?>("Rank")
                         .HasColumnType("int");
 
@@ -123,6 +132,8 @@ namespace hoikun.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClassId");
+
+                    b.HasIndex("PickupTimeSettingId");
 
                     b.HasIndex("UserId");
 
@@ -196,6 +207,54 @@ namespace hoikun.Migrations
                     b.ToTable("EmergencyContacts");
                 });
 
+            modelBuilder.Entity("hoikun.Data.Employee", b =>
+                {
+                    b.Property<int>("EmployeeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmployeeId"));
+
+                    b.Property<decimal>("BasePay")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Department")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeeCode")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmployeeName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("HireDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsHourly")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("RetireDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
+
+                    b.HasKey("EmployeeId");
+
+                    b.HasIndex("UserId")
+                        .IsUnique();
+
+                    b.ToTable("Employees");
+                });
+
             modelBuilder.Entity("hoikun.Data.Form", b =>
                 {
                     b.Property<int>("Id")
@@ -204,10 +263,17 @@ namespace hoikun.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Category")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FormType")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
@@ -270,11 +336,17 @@ namespace hoikun.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ChildrenId")
+                        .HasColumnType("int");
+
                     b.Property<int>("FormId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("SubmittedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("UserId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -291,15 +363,20 @@ namespace hoikun.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
+                    b.Property<DateTime?>("DateValue")
+                        .HasColumnType("datetime2");
+
                     b.Property<int>("FieldId")
                         .HasColumnType("int");
 
-                    b.Property<int>("SubmissionId")
+                    b.Property<int?>("IntValue")
                         .HasColumnType("int");
 
-                    b.Property<string>("Value")
-                        .IsRequired()
+                    b.Property<string>("StringValue")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("SubmissionId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
@@ -443,6 +520,95 @@ namespace hoikun.Migrations
                     b.ToTable("MessageRecipients");
                 });
 
+            modelBuilder.Entity("hoikun.Data.OvertimeRate", b =>
+                {
+                    b.Property<int>("OvertimeRateId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("OvertimeRateId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("Rate")
+                        .HasColumnType("decimal(5, 2)");
+
+                    b.Property<string>("RateType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ValidFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("OvertimeRateId");
+
+                    b.HasIndex("RateType", "ValidFrom", "ValidTo")
+                        .HasDatabaseName("IX_OvertimeRate_RateTypePeriod");
+
+                    b.ToTable("OvertimeRates");
+                });
+
+            modelBuilder.Entity("hoikun.Data.PaySlip", b =>
+                {
+                    b.Property<int>("PaySlipId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PaySlipId"));
+
+                    b.Property<decimal>("BasePay")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("HolidayPay")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("LateNightPay")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("OtherAllowance")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<decimal>("OvertimePay")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime?>("PaymentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodEnd")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PeriodStart")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal>("TotalPay")
+                        .HasColumnType("decimal(18, 2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PaySlipId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("PaySlips");
+                });
+
             modelBuilder.Entity("hoikun.Data.Photo", b =>
                 {
                     b.Property<int>("Id")
@@ -471,6 +637,53 @@ namespace hoikun.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Photos");
+                });
+
+            modelBuilder.Entity("hoikun.Data.PickupRecord", b =>
+                {
+                    b.Property<int>("PickupRecordId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PickupRecordId"));
+
+                    b.Property<int>("ChildrenId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("PickupTime")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("PickupRecordId");
+
+                    b.HasIndex("ChildrenId");
+
+                    b.ToTable("PickupRecords");
+                });
+
+            modelBuilder.Entity("hoikun.Data.PickupTimeSetting", b =>
+                {
+                    b.Property<int>("PickupTimeSettingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PickupTimeSettingId"));
+
+                    b.Property<int>("Hour")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Minute")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PickupType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("PickupTimeSettingId");
+
+                    b.ToTable("PickupTimeSettings");
                 });
 
             modelBuilder.Entity("hoikun.Data.Rout", b =>
@@ -503,6 +716,127 @@ namespace hoikun.Migrations
                     b.ToTable("Routs");
                 });
 
+            modelBuilder.Entity("hoikun.Data.Shift", b =>
+                {
+                    b.Property<int>("ShiftId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("EndTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("ShiftTypeId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("StartTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("WorkDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ShiftId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.HasIndex("ShiftTypeId");
+
+                    b.ToTable("Shifts");
+                });
+
+            modelBuilder.Entity("hoikun.Data.ShiftType", b =>
+                {
+                    b.Property<int>("ShiftTypeId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ShiftTypeId"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<TimeOnly>("EndTime")
+                        .HasColumnType("time");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeOnly>("StartTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ShiftTypeId");
+
+                    b.ToTable("ShiftTypes");
+                });
+
+            modelBuilder.Entity("hoikun.Data.TimeCard", b =>
+                {
+                    b.Property<int>("TimeCardId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("TimeCardId"));
+
+                    b.Property<TimeSpan?>("BreakTime")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime?>("ClockIn")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ClockOut")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmployeeId")
+                        .HasColumnType("int");
+
+                    b.Property<TimeSpan?>("HolidayWorkHours")
+                        .HasColumnType("time");
+
+                    b.Property<bool>("IsEarlyLeaving")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsHoliday")
+                        .HasColumnType("bit");
+
+                    b.Property<TimeSpan?>("LateNightOvertimeHours")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("OvertimeHours")
+                        .HasColumnType("time");
+
+                    b.Property<TimeSpan?>("RegularWorkHours")
+                        .HasColumnType("time");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("WorkDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("TimeCardId");
+
+                    b.HasIndex("EmployeeId");
+
+                    b.ToTable("TimeCards");
+                });
+
             modelBuilder.Entity("hoikun.Data.User", b =>
                 {
                     b.Property<int>("UserId")
@@ -526,6 +860,9 @@ namespace hoikun.Migrations
 
                     b.Property<string>("Email")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("LineId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
@@ -598,6 +935,10 @@ namespace hoikun.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("hoikun.Data.PickupTimeSetting", null)
+                        .WithMany("Children")
+                        .HasForeignKey("PickupTimeSettingId");
+
                     b.HasOne("hoikun.Data.User", "User")
                         .WithMany("Children")
                         .HasForeignKey("UserId")
@@ -634,6 +975,17 @@ namespace hoikun.Migrations
                         .WithMany("EmergencyContacts")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("hoikun.Data.Employee", b =>
+                {
+                    b.HasOne("hoikun.Data.User", "User")
+                        .WithOne("Employee")
+                        .HasForeignKey("hoikun.Data.Employee", "UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("User");
@@ -743,6 +1095,17 @@ namespace hoikun.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("hoikun.Data.PaySlip", b =>
+                {
+                    b.HasOne("hoikun.Data.Employee", "Employee")
+                        .WithMany("PaySlips")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+                });
+
             modelBuilder.Entity("hoikun.Data.Photo", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
@@ -750,6 +1113,17 @@ namespace hoikun.Migrations
                         .HasForeignKey("UserId");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("hoikun.Data.PickupRecord", b =>
+                {
+                    b.HasOne("hoikun.Data.Children", "Children")
+                        .WithMany()
+                        .HasForeignKey("ChildrenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("hoikun.Data.Rout", b =>
@@ -760,6 +1134,36 @@ namespace hoikun.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("hoikun.Data.Shift", b =>
+                {
+                    b.HasOne("hoikun.Data.Employee", "Employee")
+                        .WithMany("Shifts")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("hoikun.Data.ShiftType", "ShiftType")
+                        .WithMany()
+                        .HasForeignKey("ShiftTypeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
+
+                    b.Navigation("ShiftType");
+                });
+
+            modelBuilder.Entity("hoikun.Data.TimeCard", b =>
+                {
+                    b.HasOne("hoikun.Data.Employee", "Employee")
+                        .WithMany("TimeCards")
+                        .HasForeignKey("EmployeeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Employee");
                 });
 
             modelBuilder.Entity("hoikun.Data.UserAppointment", b =>
@@ -776,6 +1180,15 @@ namespace hoikun.Migrations
                     b.Navigation("Children");
 
                     b.Navigation("ClassTeachers");
+                });
+
+            modelBuilder.Entity("hoikun.Data.Employee", b =>
+                {
+                    b.Navigation("PaySlips");
+
+                    b.Navigation("Shifts");
+
+                    b.Navigation("TimeCards");
                 });
 
             modelBuilder.Entity("hoikun.Data.Form", b =>
@@ -805,6 +1218,11 @@ namespace hoikun.Migrations
                     b.Navigation("Message");
                 });
 
+            modelBuilder.Entity("hoikun.Data.PickupTimeSetting", b =>
+                {
+                    b.Navigation("Children");
+                });
+
             modelBuilder.Entity("hoikun.Data.User", b =>
                 {
                     b.Navigation("Appointments");
@@ -814,6 +1232,8 @@ namespace hoikun.Migrations
                     b.Navigation("ClassTeachers");
 
                     b.Navigation("EmergencyContacts");
+
+                    b.Navigation("Employee");
 
                     b.Navigation("MessageRecipients");
 

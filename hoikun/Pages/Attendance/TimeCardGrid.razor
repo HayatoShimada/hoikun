@@ -1,0 +1,62 @@
+﻿@using hoikun.Data
+@inject IDbContextService dbContextService
+@inject UserStateService UserStateService
+
+<DxGrid @ref="GridCard"
+        Data="@timeCards"
+        EditMode="GridEditMode.EditRow"
+        DataItemDeleting="OnTimeCardRowRemoving"
+        EditModelSaving="OnTimeCardEditSaving"
+        CustomizeEditModel="OnCustomizeTimeCardEditModel"
+        TextWrapEnabled="false"
+        PageSize="20">
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="TimeCardId" MinWidth="100" />
+        <DxGridDataColumn FieldName="EmployeeId" MinWidth="100" />
+        <DxGridDataColumn FieldName="CreatedAt" Width="15%" />
+    </Columns>
+</DxGrid>
+
+@code {
+    private List<TimeCard> timeCards = new();
+    IGrid? GridCard;
+
+    protected override async Task OnInitializedAsync()
+    {
+        timeCards = await dbContextService.GetTimeCardAsync(q =>
+            q.Where(tc => tc.EmployeeId == UserStateService.ModelId));
+    }
+
+    async Task OnTimeCardEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var timeCard = (TimeCard)e.EditModel;
+
+        if (e.IsNew)
+            await dbContextService.AddTimeCardAsync(timeCard);
+        else
+            await dbContextService.UpdateTimeCardAsync(timeCard);
+
+        timeCards = await dbContextService.GetTimeCardAsync(q =>
+            q.Where(tc => tc.EmployeeId == UserStateService.ModelId));
+    }
+
+    void OnCustomizeTimeCardEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew && UserStateService.ModelId.HasValue)
+        {
+            var timeCard = (TimeCard)e.EditModel;
+            timeCard.EmployeeId = UserStateService.ModelId.Value;
+            timeCard.CreatedAt = DateTime.Now;
+        }
+    }
+
+    async Task OnTimeCardRowRemoving(GridDataItemDeletingEventArgs e)
+    {
+        var timeCard = (TimeCard)e.DataItem;
+        await dbContextService.DeleteTimeCardAsync(timeCard.TimeCardId);
+
+        timeCards = await dbContextService.GetTimeCardAsync(q =>
+            q.Where(tc => tc.EmployeeId == UserStateService.ModelId));
+    }
+}

@@ -8,43 +8,47 @@
 @inject IDbContextService dbContextService
 @attribute [Authorize]
 
-<h3>打刻アプリ起動</h3>
+<h3 class="py-2">打刻アプリ起動</h3>
 <NavLink href="/BarcodeScan">
     <DxButton>カメラ起動</DxButton>
 </NavLink>
 
-<h3>タイムカード一覧</h3>
+<h3 class="py-2">タイムカード一覧</h3>
 <DxGrid @ref="GridCard"
         Data="@timeCards"
+        EditMode="GridEditMode.EditRow"
+        DataItemDeleting="OnTimeCardRowRemoving"
+        EditModelSaving="OnTimeCardEditSaving"
+        CustomizeEditModel="OnCustomizeTimeCardEditModel"
         TextWrapEnabled="false"
         PageSize="20">
-
     <Columns>
         <DxGridCommandColumn Width="160px" />
         <DxGridDataColumn FieldName="TimeCardId" MinWidth="100" />
         <DxGridDataColumn FieldName="EmployeeId" MinWidth="100" />
-        <DxGridDataColumn FieldName="CreatedAt" Width="15%" />
-        <DxGridDataColumn FieldName="Id" Width="15%">
-            <CellDisplayTemplate>
-                <button class="btn btn-link grid-btn-link" @onclick="() => EditButtonClick((int)context.Value)">
-                    詳細を見る
-                </button>
+        <DxGridDataColumn FieldName="ClockIn" Caption="出勤時間" MinWidth="120">
+            <CellDisplayTemplate Context="cellContext">
+                @(((TimeCard)cellContext.DataItem).ClockIn?.ToString("yyyy/MM/dd HH:mm") ?? "-")
             </CellDisplayTemplate>
-            <HeaderCaptionTemplate>
-                詳細
-            </HeaderCaptionTemplate>
         </DxGridDataColumn>
+        <DxGridDataColumn FieldName="ClockOut" Caption="退勤時間" MinWidth="120">
+            <CellDisplayTemplate Context="cellContext">
+                @(((TimeCard)cellContext.DataItem).ClockOut?.ToString("yyyy/MM/dd HH:mm") ?? "-")
+            </CellDisplayTemplate>
+        </DxGridDataColumn>
+        <DxGridDataColumn FieldName="CreatedAt" Caption="作成日時" Width="15%" />
     </Columns>
+
 </DxGrid>
 
-<h3>先生一覧</h3>
+<h3 class="py-2">先生一覧</h3>
 <DxGrid @ref="GridTeacher"
         Data="@users"
         TextWrapEnabled="false"
         PageSize="20">
 
     <Columns>
-        <DxGridCommandColumn Width="160px" />
+        <DxGridCommandColumn Width="160px" ShowNewButton="false" ShowDeleteButton="false" ShowEditButton="false" />
         <DxGridDataColumn FieldName="Name" MinWidth="100" />
         <DxGridDataColumn FieldName="UserId" Caption="QRコード" MinWidth="150">
             <CellDisplayTemplate Context="cellContext">
@@ -60,6 +64,84 @@
     </Columns>
 </DxGrid>
 
+<h3 class="py-2">保護者一覧</h3>
+<DxGrid @ref="GridParent"
+        Data="@parents"
+        EditMode="GridEditMode.EditRow"
+        EditModelSaving="OnParentRoleEditSaving"
+        CustomizeEditModel="OnCustomizeParentEditModel"
+        TextWrapEnabled="false"
+        PageSize="20">
+    <Columns>
+        <DxGridCommandColumn Width="160px" ShowNewButton="false" ShowDeleteButton="false" />
+        <DxGridDataColumn FieldName="Name" Caption="名前" MinWidth="100" />
+        <DxGridDataColumn FieldName="Role" Caption="ロール">
+            <CellEditTemplate Context="editContext">
+                <DxComboBox @bind-Value="((User)editContext.EditModel).Role"
+                            Data="@RoleOptions"
+                            NullText="選択してください" />
+            </CellEditTemplate>
+        </DxGridDataColumn>
+        <DxGridDataColumn FieldName="UserId" Caption="QRコード" MinWidth="150">
+            <CellDisplayTemplate Context="cellContext">
+                @{
+                    var parent = (User)cellContext.DataItem;
+                    var qrCodeSvg = GenerateSvgQRCode(parent.AADB2CUserId);
+                }
+                <div>
+                    @((MarkupString)qrCodeSvg)
+                </div>
+            </CellDisplayTemplate>
+        </DxGridDataColumn>
+    </Columns>
+</DxGrid>
+
+<h3 class="py-2">その他のユーザー一覧（未設定 / Admin）</h3>
+<DxGrid @ref="GridOther"
+        Data="@others"
+        EditMode="GridEditMode.EditRow"
+        EditModelSaving="OnOtherRoleEditSaving"
+        CustomizeEditModel="OnCustomizeOtherEditModel"
+        TextWrapEnabled="false"
+        PageSize="20">
+    <Columns>
+        <DxGridCommandColumn Width="160px" ShowNewButton="false" ShowDeleteButton="false" />
+        <DxGridDataColumn FieldName="Name" Caption="名前" MinWidth="100" />
+        <DxGridDataColumn FieldName="Role" Caption="ロール">
+            <CellEditTemplate Context="editContext">
+                <DxComboBox @bind-Value="((User)editContext.EditModel).Role"
+                            Data="@RoleOptions"
+                            NullText="選択してください" />
+            </CellEditTemplate>
+        </DxGridDataColumn>
+        <DxGridDataColumn FieldName="UserId" Caption="QRコード" MinWidth="150">
+            <CellDisplayTemplate Context="cellContext">
+                @if (cellContext.DataItem is User otherUser)
+                {
+                    var qrCodeSvg = GenerateSvgQRCode(otherUser.AADB2CUserId);
+                    <div>@((MarkupString)qrCodeSvg)</div>
+                }
+            </CellDisplayTemplate>
+        </DxGridDataColumn>
+    </Columns>
+</DxGrid>
+
+<h3 class="py-2">お迎え記録一覧</h3>
+<DxGrid @ref="GridPickup"
+        Data="@pickupRecords"
+        EditMode="GridEditMode.EditRow"
+        DataItemDeleting="OnPickupRecordRowRemoving"
+        EditModelSaving="OnPickupRecordEditSaving"
+        CustomizeEditModel="OnCustomizePickupEditModel"
+        TextWrapEnabled="false"
+        PageSize="20">
+    <Columns>
+        <DxGridCommandColumn Width="160px" />
+        <DxGridDataColumn FieldName="PickupTime" Caption="お迎え時間" MinWidth="150" />
+        <DxGridDataColumn FieldName="ChildrenId" Caption="園児ID" MinWidth="150" />
+        <DxGridDataColumn FieldName="DelayMinutes" Caption="遅延(分)" />
+    </Columns>
+</DxGrid>
 
 
 
@@ -71,24 +153,73 @@
 
     private List<TimeCard> timeCards = new List<TimeCard>();
     private List<User>? users = new List<User>();
+    private List<User>? parents = new List<User>();
+    private List<User>? others = new();
+
+    private List<string> RoleOptions = new() { "Parent", "Teacher", "Admin" };
 
     IGrid? GridCard { get; set; }
     IGrid? GridTeacher { get; set; }
+    IGrid? GridParent { get; set; }
+    IGrid? GridOther { get; set; }
+    IGrid? GridPickup { get; set; }
 
     private bool isFirstRender = true;
 
     QRCodeGenerator qrGenerator = new QRCodeGenerator();
     List<QRCodeData> qRCodeDatas = new();
 
-    // フォーム一覧を取得
+    private List<PickupRecord> pickupRecords = new();
+
     protected override async Task OnInitializedAsync()
     {
         timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
         users = await dbContextService.GetUserAsync("Teacher");
+        parents = await dbContextService.GetUserAsync("Parent");
 
-        
+        others = await dbContext.Users
+            .Where(u => string.IsNullOrEmpty(u.Role) || u.Role == "admin")
+            .ToListAsync();
+
+        pickupRecords = await dbContextService.GetPickupRecordsAsync(query =>
+                query.Include(p => p.Children)
+                     .OrderByDescending(p => p.PickupTime));
     }
 
+
+    void OnCustomizeParentEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var user = (User)e.EditModel;
+            user.Role = "Parent";
+        }
+    }
+
+    void OnCustomizeOtherEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var user = (User)e.EditModel;
+            user.Role = "Parent";
+        }
+    }
+
+    async Task OnOtherRoleEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var user = (User)e.EditModel;
+        await dbContextService.UpdateUserAsync(user);
+        others = await dbContext.Users
+            .Where(u => string.IsNullOrEmpty(u.Role) || u.Role == "admin")
+            .ToListAsync();
+    }
+
+    async Task OnParentRoleEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var user = (User)e.EditModel;
+        await dbContextService.UpdateUserAsync(user);
+        parents = await dbContextService.GetUserAsync("Parent");
+    }
 
     private string GenerateSvgQRCode(string data)
     {
@@ -96,11 +227,10 @@
         using (QRCodeData qrCodeData = qrGenerator.CreateQrCode(data, QRCodeGenerator.ECCLevel.Q))
         using (SvgQRCode qrCode = new SvgQRCode(qrCodeData))
         {
-            return qrCode.GetGraphic(2); // SVGデータとして出力
+            return qrCode.GetGraphic(2);
         }
     }
 
-    // クエリパラメータ付きでページ遷移
     private void EditButtonClick(int timeCardId)
     {
         NavigationManager.NavigateTo($"/timecard-edit/{timeCardId}");
@@ -119,7 +249,7 @@
     {
         if (users != null && users.Any())
         {
-            await Task.Delay(500); // レンダリングを待つ
+            await Task.Delay(500);
 
             foreach (var user in users)
             {
@@ -128,4 +258,81 @@
             }
         }
     }
+
+    async Task OnTimeCardEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var timeCard = (TimeCard)e.EditModel;
+
+        if (e.IsNew)
+            await dbContextService.AddTimeCardAsync(timeCard);
+        else
+            await dbContextService.UpdateTimeCardAsync(timeCard);
+
+        timeCards = await dbContextService.GetTimeCardAsync(query => query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
+    }
+
+
+    void OnCustomizeTimeCardEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var timeCard = (TimeCard)e.EditModel;
+            if (UserStateService.ModelId is null)
+            {
+                // ログ出力や例外処理など必要に応じて
+                throw new InvalidOperationException("ログインユーザーのIDが設定されていません。");
+            }
+
+            timeCard.EmployeeId = UserStateService.ModelId.Value;
+
+            timeCard.CreatedAt = DateTime.Now;
+        }
+    }
+
+    async Task OnTimeCardRowRemoving(GridDataItemDeletingEventArgs e)
+    {
+        var timeCard = (TimeCard)e.DataItem;
+        await dbContextService.DeleteTimeCardAsync(timeCard.TimeCardId);
+
+        timeCards = await dbContextService.GetTimeCardAsync(query =>
+            query.Where(tc => tc.EmployeeId == UserStateService.ModelId));
+    }
+
+
+    async Task OnPickupRecordEditSaving(GridEditModelSavingEventArgs e)
+    {
+        var pickup = (PickupRecord)e.EditModel;
+
+        if (e.IsNew)
+            await dbContextService.AddPickupRecordAsync(pickup);
+        else
+            await dbContextService.UpdatePickupRecordAsync(pickup);
+
+        pickupRecords = await dbContextService.GetPickupRecordsAsync(query =>
+            query.Include(p => p.Children)
+                 .OrderByDescending(p => p.PickupTime));
+    }
+
+
+
+    void OnCustomizePickupEditModel(GridCustomizeEditModelEventArgs e)
+    {
+        if (e.IsNew)
+        {
+            var pickup = (PickupRecord)e.EditModel;
+            pickup.PickupTime = DateTime.Now;
+        }
+    }
+
+    async Task OnPickupRecordRowRemoving(GridDataItemDeletingEventArgs e)
+    {
+        var pickup = (PickupRecord)e.DataItem;
+        await dbContextService.DeletePickupRecordAsync(pickup.PickupRecordId);
+
+        pickupRecords = await dbContextService.GetPickupRecordsAsync(query =>
+            query.Include(p => p.Children)
+                 .OrderByDescending(p => p.PickupTime));
+    }
+
+
 }

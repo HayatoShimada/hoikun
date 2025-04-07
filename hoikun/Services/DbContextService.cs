@@ -266,6 +266,28 @@ public class DbContextService : IDbContextService
         return await query.ToListAsync();
     }
 
+    public async Task UpdateTimeCardAsync(TimeCard timeCard)
+    {
+        var local = _dbContext.TimeCards.Local.FirstOrDefault(tc => tc.TimeCardId == timeCard.TimeCardId);
+        if (local != null)
+        {
+            _dbContext.Entry(local).State = EntityState.Detached;
+        }
+
+        _dbContext.TimeCards.Update(timeCard);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteTimeCardAsync(int timeCardId)
+    {
+        var entity = await _dbContext.TimeCards.FindAsync(timeCardId);
+        if (entity != null)
+        {
+            _dbContext.TimeCards.Remove(entity);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
     public async Task<List<User>?> GetUserAsync(string? role)
     {
         IQueryable<User> query = _dbContext.Users.Include(u => u.Employee);
@@ -278,16 +300,26 @@ public class DbContextService : IDbContextService
         return await query.ToListAsync();
     }
 
-    public async Task UpdateUserAsync(Func<IQueryable<User>, IQueryable<User>> queryModifier)
+    public async Task UpdateUserAsync(User user)
     {
-        IQueryable<User> query = _dbContext.Users.AsQueryable();
-        List<User> usersToUpdate = await queryModifier(query).ToListAsync();
-
-        if (usersToUpdate.Any())
+        var existingUser = await _dbContext.Users.FirstOrDefaultAsync(u => u.UserId == user.UserId);
+        if (existingUser != null)
         {
+            // 全プロパティを更新
+            existingUser.Name = user.Name;
+            existingUser.Email = user.Email;
+            existingUser.Role = user.Role;
+            existingUser.AADB2CUserId = user.AADB2CUserId;
+            existingUser.PostalCode = user.PostalCode;
+            existingUser.State = user.State;
+            existingUser.City = user.City;
+            existingUser.Street = user.Street;
+
+
             await _dbContext.SaveChangesAsync();
         }
     }
+
 
     public async Task<bool> UpdateOneUserAsync(User user)
     {
@@ -484,5 +516,68 @@ public class DbContextService : IDbContextService
         return await queryModifier(_dbContext.Set<PickupRecord>()).ToListAsync();
     }
 
+    // --- PickupTimeSetting 関連 ---
+    public async Task<List<PickupTimeSetting>> GetPickupTimeSettingsAsync()
+    {
+        return await _dbContext.Set<PickupTimeSetting>()
+            .Include(p => p.Children)
+            .ThenInclude(c => c.User)
+            .AsNoTracking()
+            .ToListAsync();
+    }
+
+
+    public async Task UpdatePickupRecordAsync(PickupRecord record)
+    {
+        var local = _dbContext.PickupRecords.Local
+            .FirstOrDefault(p => p.PickupRecordId == record.PickupRecordId);
+
+        if (local != null)
+        {
+            _dbContext.Entry(local).State = EntityState.Detached;
+        }
+
+        _dbContext.PickupRecords.Update(record);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task<PickupTimeSetting?> GetPickupTimeSettingByTypeAsync(int id)
+    {
+        return await _dbContext.Set<PickupTimeSetting>()
+            .FirstOrDefaultAsync(p => p.PickupTimeSettingId == id);
+    }
+
+    public async Task AddPickupTimeSettingAsync(PickupTimeSetting setting)
+    {
+        _dbContext.Set<PickupTimeSetting>().Add(setting);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task UpdatePickupTimeSettingAsync(PickupTimeSetting setting)
+    {
+        var existing = await _dbContext.PickupTimeSettings
+            .FirstOrDefaultAsync(p => p.PickupTimeSettingId == setting.PickupTimeSettingId);
+
+        if (existing == null)
+            throw new KeyNotFoundException($"PickupTimeSetting with Id {setting.PickupTimeSettingId} not found.");
+
+        // 明示的に必要なプロパティのみ更新（Children は更新しない）
+        existing.PickupType = setting.PickupType;
+        existing.Hour = setting.Hour;
+        existing.Minute = setting.Minute;
+
+        await _dbContext.SaveChangesAsync();
+    }
+
+
+    public async Task DeletePickupRecordAsync(int pickupRecordId)
+    {
+        var entity = await _dbContext.PickupRecords.FindAsync(pickupRecordId);
+        if (entity != null)
+        {
+            _dbContext.PickupRecords.Remove(entity);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
 
 }

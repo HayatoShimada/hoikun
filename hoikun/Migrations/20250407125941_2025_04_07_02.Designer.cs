@@ -12,8 +12,8 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250314021135_2025_03_14_2")]
-    partial class _2025_03_14_2
+    [Migration("20250407125941_2025_04_07_02")]
+    partial class _2025_04_07_02
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -99,7 +99,7 @@ namespace hoikun.Migrations
                     b.Property<DateTime?>("Birthday")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("ClassId")
+                    b.Property<int?>("ClassId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("CreatedAt")
@@ -110,6 +110,15 @@ namespace hoikun.Migrations
 
                     b.Property<string>("Notes")
                         .HasColumnType("nvarchar(max)");
+
+                    b.Property<TimeOnly?>("PickupExpectedTime")
+                        .HasColumnType("time");
+
+                    b.Property<int?>("PickupTimeSettingId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PickupType")
+                        .HasColumnType("int");
 
                     b.Property<int?>("Rank")
                         .HasColumnType("int");
@@ -123,6 +132,8 @@ namespace hoikun.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClassId");
+
+                    b.HasIndex("PickupTimeSettingId");
 
                     b.HasIndex("UserId");
 
@@ -628,6 +639,59 @@ namespace hoikun.Migrations
                     b.ToTable("Photos");
                 });
 
+            modelBuilder.Entity("hoikun.Data.PickupRecord", b =>
+                {
+                    b.Property<int>("PickupRecordId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PickupRecordId"));
+
+                    b.Property<int>("ChildrenId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("DelayMinutes")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("PickupTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("PickupType")
+                        .HasColumnType("int");
+
+                    b.HasKey("PickupRecordId");
+
+                    b.HasIndex("ChildrenId");
+
+                    b.ToTable("PickupRecords");
+                });
+
+            modelBuilder.Entity("hoikun.Data.PickupTimeSetting", b =>
+                {
+                    b.Property<int>("PickupTimeSettingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("PickupTimeSettingId"));
+
+                    b.Property<int>("Hour")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Minute")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PickupType")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("PickupTimeSettingId");
+
+                    b.ToTable("PickupTimeSettings");
+                });
+
             modelBuilder.Entity("hoikun.Data.Rout", b =>
                 {
                     b.Property<int>("Id")
@@ -873,9 +937,11 @@ namespace hoikun.Migrations
                 {
                     b.HasOne("hoikun.Data.Class", "Class")
                         .WithMany("Children")
-                        .HasForeignKey("ClassId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ClassId");
+
+                    b.HasOne("hoikun.Data.PickupTimeSetting", null)
+                        .WithMany("Children")
+                        .HasForeignKey("PickupTimeSettingId");
 
                     b.HasOne("hoikun.Data.User", "User")
                         .WithMany("Children")
@@ -1053,6 +1119,17 @@ namespace hoikun.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("hoikun.Data.PickupRecord", b =>
+                {
+                    b.HasOne("hoikun.Data.Children", "Children")
+                        .WithMany()
+                        .HasForeignKey("ChildrenId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Children");
+                });
+
             modelBuilder.Entity("hoikun.Data.Rout", b =>
                 {
                     b.HasOne("hoikun.Data.User", "User")
@@ -1143,6 +1220,11 @@ namespace hoikun.Migrations
             modelBuilder.Entity("hoikun.Data.Photo", b =>
                 {
                     b.Navigation("Message");
+                });
+
+            modelBuilder.Entity("hoikun.Data.PickupTimeSetting", b =>
+                {
+                    b.Navigation("Children");
                 });
 
             modelBuilder.Entity("hoikun.Data.User", b =>

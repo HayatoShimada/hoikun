@@ -56,7 +56,7 @@
             string? accountKey = _configuration["AzureStorageConfig:AccountKey"];
             string? containerName = _configuration["AzureStorageConfig:ContainerName"];
 
-            string connectionString = $"DefaultEndpointsProtocol=https;AccountName={accountName};AccountKey={accountKey};EndpointSuffix=core.windows.net";
+            string connectionString = $"DefaultEndpointsProtocol=https;AccountName=hoikunstorage;AccountKey=ySwkO2vNpImvCSej/4Bo0vt7MOElbDu/pQXbXMzeL/fs9g8iPs5PLPd3ZtiiHmmB2EjjDSdazLtE+AStohT0IA==;EndpointSuffix=core.windows.net";
             BlobServiceClient blobServiceClient = new(connectionString);
             return blobServiceClient.GetBlobContainerClient(containerName);
         }

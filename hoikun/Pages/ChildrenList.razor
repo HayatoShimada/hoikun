@@ -9,55 +9,80 @@
 @inject IDbContextService dbContextService
 @attribute [Authorize]
 
+<div style="overflow-x: auto;">
+    <DxGrid @ref="Grid"
+            Data="@children"
+            ColumnResizeMode="GridColumnResizeMode.NextColumn"
+            CustomizeEditModel="Grid_CustomizeEditModel"
+            DataItemDeleting="Grid_DataItemDeleting"
+            EditMode="GridEditMode.EditRow"
+            EditModelSaving="Grid_EditModelSaving"
+            EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
+            TextWrapEnabled="false"
+            PageSize="20">
 
-<DxGrid @ref="Grid"
-        Data="@children"
-        ColumnResizeMode="GridColumnResizeMode.NextColumn"
-        CustomizeEditModel="Grid_CustomizeEditModel"
-        DataItemDeleting="Grid_DataItemDeleting"
-        EditMode="GridEditMode.EditRow"
-        EditModelSaving="Grid_EditModelSaving"
-        EditNewRowPosition="GridEditNewRowPosition.FixedOnTop"
-        TextWrapEnabled="false"
-        PageSize="20">
+        <Columns>
+            <DxGridCommandColumn Width="160px" />
+            <DxGridDataColumn FieldName="Name" MinWidth="100" />
+            <DxGridDataColumn FieldName="User.Name" Caption="保護者" MinWidth="150" />
+            <DxGridDataColumn FieldName="Class.Name" MinWidth="100">
+                <CellEditTemplate>
+                    @{
+                        var childItem = (Children)context.EditModel;
+                    }
+                    <DxComboBox Data="@classes"
+                                NullText="クラスを選んでください..."
+                                SearchMode="ListSearchMode.AutoSearch"
+                                SearchFilterCondition="ListSearchFilterCondition.Contains"
+                                TextFieldName="Name"
+                                ValueFieldName="Id"
+                                @bind-Value="@childItem.ClassId">
+                    </DxComboBox>
+                </CellEditTemplate>
+            </DxGridDataColumn>
 
-    <Columns>
-        <DxGridCommandColumn Width="160px" />
-        <DxGridDataColumn FieldName="Name" MinWidth="100" />
-        <DxGridDataColumn FieldName="Class.Name" MinWidth="100">
-            <CellEditTemplate>
-                @{
-                    var childItem = (Children)context.EditModel;
-                }
-                <DxComboBox Data="@classes"
-                            NullText="クラスを選んでください..."
-                            SearchMode="ListSearchMode.AutoSearch"
-                            SearchFilterCondition="ListSearchFilterCondition.Contains"
-                            TextFieldName="Name"
-                            ValueFieldName="Id"
-                            @bind-Value="@childItem.ClassId">
-                </DxComboBox>
-            </CellEditTemplate>
+            <DxGridDataColumn FieldName="UserId" MinWidth="100" />
+            <DxGridDataColumn FieldName="Birthday" Width="15%" />
+            <DxGridDataColumn FieldName="AllergyInfo" Width="15%" />
+            <DxGridDataColumn FieldName="Notes" Width="15%" />
 
+            <DxGridDataColumn FieldName="PickupType" Caption="種別">
+                <CellEditTemplate>
+                    @{
+                        var childItem = (Children)context.EditModel;
+                    }
+                    <DxComboBox Data="@pickupTypeOptions"
+                                TextFieldName="Value"
+                                ValueFieldName="Key"
+                                NullText="選択..."
+                                @bind-Value="@childItem.PickupType">
+                    </DxComboBox>
+                </CellEditTemplate>
+            </DxGridDataColumn>
+        </Columns>
+    </DxGrid>
+</div>
 
-        </DxGridDataColumn>
-
-        <DxGridDataColumn FieldName="UserId" MinWidth="100" />
-        <DxGridDataColumn FieldName="Birthday" Width="15%" />
-        <DxGridDataColumn FieldName="AllergyInfo" Width="15%" />
-        <DxGridDataColumn FieldName="Notes" Width="15%" />
-    </Columns>
-</DxGrid>
-
+<DxButton RenderStyle="ButtonRenderStyle.Secondary" CssClass="mt-3" Click="NavigateToPickupTimeSettings">
+    お迎え時間設定を編集
+</DxButton>
 
 @code {
     [Parameter]
     public Class? SelectedClass { get; set; }
 
     private List<Class> classes = new();
-
     private List<Children> children = new();
     IGrid? Grid { get; set; }
+
+    private List<KeyValuePair<int, string>> pickupTypeOptions = new()
+    {
+        new(1, "第1種"),
+        new(2, "第2種"),
+        new(3, "第3種"),
+        new(4, "第4種"),
+        new(5, "第5種")
+    };
 
     protected override async Task OnInitializedAsync()
     {
@@ -69,12 +94,11 @@
     {
         if (SelectedClass != null)
         {
-            children = await dbContextService.GetChildrenAsync(query => query.Where(c => c.Id == SelectedClass.Id));
+            children = await dbContextService.GetChildrenAsync(query => query.Include(c => c.User).Where(c => c.Id == SelectedClass.Id));
         }
         else
         {
-            children = await dbContextService.GetChildrenAsync(query => query);
-
+            children = await dbContextService.GetChildrenAsync(query => query.Include(c => c.User));
         }
         StateHasChanged(); // UIを更新
     }
@@ -86,7 +110,7 @@
             var newChild = (Children)e.EditModel;
             newChild.Name = "未設定";
             newChild.ClassId = SelectedClass?.Id ?? 1;
-
+            newChild.PickupType = 1;
         }
     }
 
@@ -104,23 +128,33 @@
             {
                 await dbContextService.UpdateChildrenAsync(editableChild.Id, editableChild);
             }
+
+            await UpdateDataAsync(); // ★ 保存後にデータを再読み込み
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
     }
-
 
     async Task Grid_DataItemDeleting(GridDataItemDeletingEventArgs e)
     {
         try
         {
             await dbContextService.DeleteChildrenAsync(((Children)e.DataItem).Id);
+            await UpdateDataAsync(); // ★ 削除後も再読み込み
         }
         catch (Exception ex)
         {
             Console.WriteLine(ex.Message);
         }
     }
+
+    void NavigateToPickupTimeSettings()
+    {
+        NavigationManager.NavigateTo("/pickup-times");
+    }
+
+    [Inject]
+    private NavigationManager NavigationManager { get; set; } = default!;
 }

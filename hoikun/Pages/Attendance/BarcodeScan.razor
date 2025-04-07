@@ -2,6 +2,8 @@
 @using Microsoft.JSInterop
 @inject IJSRuntime JS
 @inject IDbContextService dbContextService
+@using Microsoft.EntityFrameworkCore
+
 @using hoikun.Data
 
 <div class="container mt-4">
@@ -45,7 +47,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        users = await dbContextService.GetUsersAsync(); // 親と職員の両方を対象
+        users = await dbContextService.GetUsersAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -70,7 +72,7 @@
             return;
         }
 
-        if (matchedUser.Role == "parent")
+        if (matchedUser.Role == "Parent")
         {
             await HandlePickupScanAsync(matchedUser);
         }
@@ -87,7 +89,8 @@
         var today = DateTime.Today;
 
         var children = await dbContextService.GetChildrenAsync(q =>
-            q.Where(c => c.UserId == user.UserId));
+            q.Where(c => c.UserId == user.UserId)
+             .Include(c => c.Class));
 
         if (children.Count == 0)
         {
@@ -99,7 +102,6 @@
 
         foreach (var child in children)
         {
-            // すでに PickupRecord が存在するか確認
             var existingRecords = await dbContextService.GetPickupRecordsAsync(q =>
                 q.Where(r => r.ChildrenId == child.Id && r.PickupTime.Date == today));
 
@@ -109,13 +111,18 @@
                 continue;
             }
 
-            // 現在時刻と予定時刻の差を計算（予定時刻が未設定なら「設定なし」）
             string timingStatus;
-            if (child.PickupExpectedTime.HasValue)
+
+            var pickupSetting = await dbContextService.GetPickupTimeSettingByTypeAsync(child.PickupType);
+
+            int? delayMinutes = null;
+
+            if (pickupSetting != null)
             {
                 var now = DateTime.Now.TimeOfDay;
-                var expected = child.PickupExpectedTime.Value.ToTimeSpan();
+                var expected = new TimeSpan(pickupSetting.Hour, pickupSetting.Minute, 0);
                 var diff = (now - expected).TotalMinutes;
+                delayMinutes = (int)Math.Round(diff);  // 遅れたら正、早ければ負
 
                 if (Math.Abs(diff) <= 5)
                     timingStatus = "時間通り";
@@ -129,11 +136,14 @@
                 timingStatus = "予定時刻未設定";
             }
 
+
             var record = new PickupRecord
                 {
                     ChildrenId = child.Id,
+                    PickupType = child.PickupType,
                     PickupTime = DateTime.Now,
-                    CreatedAt = DateTime.Now
+                    CreatedAt = DateTime.Now,
+                    DelayMinutes = delayMinutes
                 };
 
             await dbContextService.AddPickupRecordAsync(record);
@@ -143,7 +153,6 @@
 
         ShowModal("お迎え記録", $"ユーザー: {user.Name}<br>" + string.Join("<br>", results));
     }
-
 
     private async Task HandleTimeCardScanAsync(User matchedUser)
     {
@@ -180,10 +189,30 @@
                 }
                 else
                 {
+                    // 出勤時間がある・退勤がない
+                    if (existingTimeCard.ClockIn.HasValue && !existingTimeCard.ClockOut.HasValue)
+                    {
+                        var elapsed = DateTime.Now - existingTimeCard.ClockIn.Value;
+                        if (elapsed.TotalHours >= 1)
+                        {
+                            existingTimeCard.ClockOut = DateTime.Now;
+                            existingTimeCard.UpdatedAt = DateTime.Now;
+                            await dbContextService.UpdateTimeCardAsync(existingTimeCard);
+
+                            clockInTime = existingTimeCard.ClockIn?.ToString("HH:mm") ?? "-";
+                            clockOutTime = existingTimeCard.ClockOut?.ToString("HH:mm") ?? "-";
+
+                            ShowModal("退勤打刻成功", $"{userInfo}<br>出勤時間: {clockInTime}<br>退勤時間: {clockOutTime}<br>（1時間以上経過していたため退勤として登録されました）");
+                            return;
+                        }
+                    }
+
+                    // すでに出勤＆退勤済み or 1時間未満の場合
                     clockInTime = existingTimeCard.ClockIn?.ToString("HH:mm") ?? "-";
                     clockOutTime = existingTimeCard.ClockOut?.ToString("HH:mm") ?? "-";
                     ShowModal("すでに打刻済み", $"{userInfo}<br>出勤時間: {clockInTime}<br>退勤時間: {clockOutTime}");
                 }
+
             }
             else
             {

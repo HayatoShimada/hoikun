@@ -106,7 +106,7 @@ else
         {
             if (user != null)
             {
-                await DbContextService.UpdateUserAsync(users => users.Where(u => u.UserId == user.UserId));
+                await DbContextService.UpdateUserAsync(user);
                 FormSubmitResult = "プロフィールを更新しました。";
                 Navigation.NavigateTo("/user-profile"); // プロフィールページにリダイレクト
             }
