@@ -1,0 +1,111 @@
+﻿@page "/blog-create"
+@using hoikun.Data
+@inject IDbContextService DbService
+@inject NavigationManager Navigation
+@inject UserStateService UserStateService
+@inject IJSRuntime JSRuntime
+
+<PageTitle>園だより作成</PageTitle>
+
+<EditForm Model="newBlog" OnValidSubmit="HandleValidSubmit">
+    <ChildContent Context="editContext">
+        <DataAnnotationsValidator />
+        <DxFormLayout>
+            <DxFormLayoutGroup Caption="基本情報">
+                <DxFormLayoutItem Caption="タイトル">
+                    <ChildContent Context="itemContext">
+                        <DxTextBox @bind-Text="newBlog.Title" />
+                    </ChildContent>
+                </DxFormLayoutItem>
+            </DxFormLayoutGroup>
+
+            <DxFormLayoutGroup Caption="コンテンツ">
+                @foreach (var content in blogContents.OrderBy(c => c.Order))
+                {
+                    <DxFormLayoutItem Caption="@($"内容（{content.ContentType}） 順番: {content.Order}")">
+                        <ChildContent Context="contentContext">
+                            @if (content.ContentType == "html")
+                            {
+                                <DxHtmlEditor Height="300px" @bind-Markup="content.ContentData" />
+                            }
+                            else if (content.ContentType == "image")
+                            {
+                                <DxTextBox @bind-Text="content.ContentData" Placeholder="画像のURLを入力" />
+                            }
+                        </ChildContent>
+                    </DxFormLayoutItem>
+                }
+
+                <DxFormLayoutItem ColSpanMd="6">
+                    <ChildContent Context="itemContext">
+                        <DxButton Click="AddHtmlContent" RenderStyle="ButtonRenderStyle.Secondary">
+                            <ChildContent Context="btnContext">
+                                HTML追加
+                            </ChildContent>
+                        </DxButton>
+                    </ChildContent>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem ColSpanMd="6">
+                    <ChildContent Context="itemContext">
+                        <DxButton Click="AddImageContent" RenderStyle="ButtonRenderStyle.Secondary">
+                            <ChildContent Context="btnContext">
+                                画像追加
+                            </ChildContent>
+                        </DxButton>
+                    </ChildContent>
+                </DxFormLayoutItem>
+
+                <DxFormLayoutItem ColSpanMd="12">
+                    <ChildContent Context="itemContext">
+                        <DxButton RenderStyle="ButtonRenderStyle.Primary" SubmitFormOnClick="true">
+                            <ChildContent Context="btnContext">
+                                保存して一覧へ
+                            </ChildContent>
+                        </DxButton>
+                    </ChildContent>
+                </DxFormLayoutItem>
+            </DxFormLayoutGroup>
+        </DxFormLayout>
+    </ChildContent>
+</EditForm>
+
+
+@code {
+    private Blog newBlog = new Blog { CreatedAt = DateTime.Now };
+    private List<BlogContent> blogContents = new();
+
+    private async Task HandleValidSubmit()
+    {
+        newBlog.AuthorUserId = UserStateService.ModelId.Value;
+        newBlog.PublishedAt = DateTime.Now;
+
+        for (int i = 0; i < blogContents.Count; i++)
+        {
+            blogContents[i].Order = i + 1;
+        }
+
+        await DbService.CreateBlogAsync(newBlog, blogContents);
+        Navigation.NavigateTo("/blog-list");
+    }
+
+    private void AddHtmlContent()
+    {
+        blogContents.Add(new BlogContent
+        {
+            ContentType = "html",
+            ContentData = "",
+            Order = blogContents.Count + 1
+        });
+    }
+
+    private void AddImageContent()
+    {
+        blogContents.Add(new BlogContent
+        {
+            ContentType = "image",
+            ContentData = "",
+            Order = blogContents.Count + 1
+        });
+    }
+}

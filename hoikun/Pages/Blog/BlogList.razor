@@ -1,0 +1,60 @@
+﻿@page "/blog-list"
+@inject IDbContextService BlogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
+
+<h3>園だより 一覧</h3>
+
+<div class="mb-3">
+    <button class="btn btn-primary" @onclick='() => Navigation.NavigateTo("/blog-create")'>
+        新規作成
+    </button>
+</div>
+
+<table class="table table-striped table-bordered">
+    <thead class="table-light">
+        <tr>
+            <th>操作</th>
+            <th>タイトル</th>
+            <th>公開日</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var blog in blogs)
+        {
+            <tr>
+                <td>
+                    <button class="btn btn-sm btn-secondary me-1" @onclick="() => OnEditClick(blog.BlogId)">編集</button>
+                    <button class="btn btn-sm btn-danger" @onclick="() => OnDeleteClick(blog)">削除</button>
+                </td>
+                <td>@blog.Title</td>
+                <td>@(blog.PublishedAt?.ToString("yyyy/MM/dd") ?? "-")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@code {
+    private List<Blog> blogs = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        blogs = await BlogService.GetAllBlogsAsync();
+    }
+
+    private void OnEditClick(int blogId)
+    {
+        Navigation.NavigateTo($"/blog-edit/{blogId}");
+    }
+
+    private async Task OnDeleteClick(Blog blog)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm", $"{blog.Title} を削除しますか？");
+        if (confirmed)
+        {
+            await BlogService.DeleteBlogAsync(blog.BlogId);
+            blogs = await BlogService.GetAllBlogsAsync();
+            StateHasChanged();
+        }
+    }
+}

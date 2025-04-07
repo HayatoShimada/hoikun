@@ -1,0 +1,92 @@
+﻿@page "/blog-edit/{BlogId:int}"
+@inject IDbContextService BlogService
+@inject NavigationManager Navigation
+@inject IJSRuntime JsRuntime
+
+<h3>園だより 編集</h3>
+
+@if (blog == null)
+{
+    <p>読み込み中...</p>
+}
+else
+{
+    <EditForm Model="blog" OnValidSubmit="OnSubmit">
+        <DataAnnotationsValidator />
+
+        <div class="mb-3">
+            <label class="form-label">タイトル</label>
+            <InputText class="form-control" @bind-Value="blog.Title" />
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">公開日</label>
+            <InputDate class="form-control" @bind-Value="blog.PublishedAt" />
+        </div>
+
+        <h5>コンテンツ</h5>
+        @foreach (var content in blogContents.OrderBy(c => c.Order))
+        {
+            <div class="mb-3 border rounded p-3">
+                <label class="form-label">種類</label>
+                <select class="form-select" @bind="content.ContentType">
+                    <option value="html">HTML</option>
+                    <option value="image">画像URL</option>
+                </select>
+
+                <label class="form-label mt-2">内容</label>
+                <textarea class="form-control" rows="4" @bind="content.ContentData"></textarea>
+
+                <label class="form-label mt-2">表示順</label>
+                <InputNumber class="form-control" @bind-Value="content.Order" />
+
+                <button type="button" class="btn btn-danger mt-2" @onclick="() => RemoveContent(content)">削除</button>
+            </div>
+        }
+
+        <button type="button" class="btn btn-secondary me-2" @onclick="AddContent">コンテンツ追加</button>
+        <button type="submit" class="btn btn-primary">保存</button>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int BlogId { get; set; }
+
+    private Blog? blog;
+    private List<BlogContent> blogContents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        blog = await BlogService.GetBlogByIdAsync(BlogId);
+        if (blog != null)
+        {
+            blogContents = blog.BlogContents.ToList();
+        }
+    }
+
+    private void AddContent()
+    {
+        blogContents.Add(new BlogContent
+            {
+                BlogId = BlogId,
+                ContentType = "html",
+                ContentData = string.Empty,
+                Order = blogContents.Count + 1
+            });
+    }
+
+    private void RemoveContent(BlogContent content)
+    {
+        blogContents.Remove(content);
+    }
+
+    private async Task OnSubmit()
+    {
+        if (blog != null)
+        {
+            await BlogService.UpdateBlogAsync(blog, blogContents);
+            Navigation.NavigateTo("/blog-list");
+        }
+    }
+}

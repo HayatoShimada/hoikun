@@ -89,6 +89,13 @@ public interface IDbContextService
     Task AddPickupTimeSettingAsync(PickupTimeSetting setting);
     Task UpdatePickupTimeSettingAsync(PickupTimeSetting setting);
 
+    // --- Blog Service ---
+
+    Task<int> CreateBlogAsync(Blog blog, List<BlogContent> contents);
+    Task<List<Blog>> GetAllBlogsAsync();
+    Task<Blog?> GetBlogByIdAsync(int blogId);
+    Task UpdateBlogAsync(Blog blog, List<BlogContent> contents);
+    Task DeleteBlogAsync(int blogId);
 
 
 }

@@ -580,4 +580,67 @@ public class DbContextService : IDbContextService
         }
     }
 
+    public async Task<int> CreateBlogAsync(Blog blog, List<BlogContent> contents)
+    {
+        blog.CreatedAt = DateTime.Now;
+        blog.PublishedAt = DateTime.Now;
+
+        _dbContext.Blogs.Add(blog);
+        await _dbContext.SaveChangesAsync();
+
+        foreach (var content in contents)
+        {
+            content.BlogId = blog.BlogId;
+        }
+
+        _dbContext.BlogContents.AddRange(contents);
+        await _dbContext.SaveChangesAsync();
+
+        return blog.BlogId;
+    }
+
+    public async Task<List<Blog>> GetAllBlogsAsync()
+    {
+        return await _dbContext.Blogs
+            .Include(b => b.BlogContents.OrderBy(c => c.Order))
+            .OrderByDescending(b => b.PublishedAt)
+            .ToListAsync();
+    }
+
+    public async Task<Blog?> GetBlogByIdAsync(int blogId)
+    {
+        return await _dbContext.Blogs
+            .Include(b => b.BlogContents.OrderBy(c => c.Order))
+            .FirstOrDefaultAsync(b => b.BlogId == blogId);
+    }
+
+    public async Task UpdateBlogAsync(Blog blog, List<BlogContent> contents)
+    {
+        blog.UpdatedAt = DateTime.Now;
+        _dbContext.Blogs.Update(blog);
+
+        var oldContents = _dbContext.BlogContents.Where(c => c.BlogId == blog.BlogId);
+        _dbContext.BlogContents.RemoveRange(oldContents);
+
+        foreach (var content in contents)
+        {
+            content.BlogId = blog.BlogId;
+        }
+
+        _dbContext.BlogContents.AddRange(contents);
+        await _dbContext.SaveChangesAsync();
+    }
+
+    public async Task DeleteBlogAsync(int blogId)
+    {
+        var blog = await _dbContext.Blogs.FindAsync(blogId);
+        if (blog != null)
+        {
+            var contents = _dbContext.BlogContents.Where(c => c.BlogId == blogId);
+            _dbContext.BlogContents.RemoveRange(contents);
+            _dbContext.Blogs.Remove(blog);
+            await _dbContext.SaveChangesAsync();
+        }
+    }
+
 }

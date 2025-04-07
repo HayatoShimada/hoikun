@@ -3,6 +3,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 
+
 namespace hoikun.Data
 {
     /// <summary>
@@ -48,6 +49,11 @@ namespace hoikun.Data
         public DbSet<TimeCard> TimeCards => Set<TimeCard>();
         public DbSet<OvertimeRate> OvertimeRates => Set<OvertimeRate>();
         public DbSet<PaySlip> PaySlips => Set<PaySlip>();
+
+        public DbSet<Blog> Blogs => Set<Blog>();
+
+        public DbSet<BlogContent> BlogContents => Set<BlogContent>();
+
 
         /// <summary>Fluent API 設定</summary>
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -201,6 +207,21 @@ namespace hoikun.Data
     .WithMany()
     .HasForeignKey(pr => pr.ChildrenId)
     .OnDelete(DeleteBehavior.Cascade);
+
+            // Blog - User (AuthorUserId) 1:N
+            modelBuilder.Entity<Blog>()
+                .HasOne(b => b.Author)
+                .WithMany() // 著者としてのブログ一覧が必要であれば WithMany(b => b.Blogs) などに
+                .HasForeignKey(b => b.AuthorUserId)
+                .OnDelete(DeleteBehavior.Restrict); // 著者削除時にもブログは保持（好みに応じて変更可）
+
+            // Blog - BlogContent 1:N
+            modelBuilder.Entity<BlogContent>()
+                .HasOne(bc => bc.Blog)
+                .WithMany(b => b.BlogContents)
+                .HasForeignKey(bc => bc.BlogId)
+                .OnDelete(DeleteBehavior.Cascade); // ブログ削除時に BlogContent も削除
+
 
         }
     }
@@ -669,6 +690,46 @@ namespace hoikun.Data
 
         public Employee? Employee { get; set; }
     }
+
+    /// <summary>
+    /// 園だより（Blog）
+    /// </summary>
+
+    public class Blog
+    {
+        public int BlogId { get; set; }
+
+        public string Title { get; set; } = string.Empty;
+
+        public DateTime CreatedAt { get; set; } = DateTime.Now;
+
+        public DateTime? UpdatedAt { get; set; } = DateTime.Now;
+
+
+        public DateTime? PublishedAt { get; set; }
+
+        public int AuthorUserId { get; set; }
+        public virtual User Author { get; set; } = null!;
+
+        public virtual ICollection<BlogContent> BlogContents { get; set; } = new List<BlogContent>();
+    }
+
+    public class BlogContent
+    {
+        public int BlogContentId { get; set; }
+
+        public int BlogId { get; set; }
+        public virtual Blog Blog { get; set; } = null!;
+
+        public int Order { get; set; }  // 表示順（1, 2, 3...）
+
+        public string ContentType { get; set; } = "text";
+        // 例: "text", "image", "html", "video"
+
+        public string ContentData { get; set; } = string.Empty;
+        // HTML文字列 or 画像URLなど
+    }
+
 
     #endregion
 }

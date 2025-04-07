@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using hoikun.Data;
 
@@ -11,9 +12,11 @@ using hoikun.Data;
 namespace hoikun.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250407153837_2025_04_08_01")]
+    partial class _2025_04_08_01
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -80,66 +83,6 @@ namespace hoikun.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("Appointments");
-                });
-
-            modelBuilder.Entity("hoikun.Data.Blog", b =>
-                {
-                    b.Property<int>("BlogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BlogId"));
-
-                    b.Property<int>("AuthorUserId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("PublishedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("BlogId");
-
-                    b.HasIndex("AuthorUserId");
-
-                    b.ToTable("Blogs");
-                });
-
-            modelBuilder.Entity("hoikun.Data.BlogContent", b =>
-                {
-                    b.Property<int>("BlogContentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("BlogContentId"));
-
-                    b.Property<int>("BlogId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("ContentData")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Order")
-                        .HasColumnType("int");
-
-                    b.HasKey("BlogContentId");
-
-                    b.HasIndex("BlogId");
-
-                    b.ToTable("BlogContents");
                 });
 
             modelBuilder.Entity("hoikun.Data.Children", b =>
@@ -990,28 +933,6 @@ namespace hoikun.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("hoikun.Data.Blog", b =>
-                {
-                    b.HasOne("hoikun.Data.User", "Author")
-                        .WithMany()
-                        .HasForeignKey("AuthorUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Author");
-                });
-
-            modelBuilder.Entity("hoikun.Data.BlogContent", b =>
-                {
-                    b.HasOne("hoikun.Data.Blog", "Blog")
-                        .WithMany("BlogContents")
-                        .HasForeignKey("BlogId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Blog");
-                });
-
             modelBuilder.Entity("hoikun.Data.Children", b =>
                 {
                     b.HasOne("hoikun.Data.Class", "Class")
@@ -1256,11 +1177,6 @@ namespace hoikun.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("hoikun.Data.Blog", b =>
-                {
-                    b.Navigation("BlogContents");
                 });
 
             modelBuilder.Entity("hoikun.Data.Class", b =>
