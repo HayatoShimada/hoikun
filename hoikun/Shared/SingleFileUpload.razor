@@ -1,0 +1,63 @@
+﻿@using Azure.Storage.Sas
+@using hoikun.Services
+@inject BlobStorageService BlobService
+@inject IJSRuntime JSRuntime
+
+<DxFileInput UploadMode="@UploadMode.OnButtonClick"
+             AllowMultiFileUpload="false"
+             MaxFileSize="15000000"
+             SelectedFilesChanged="@SelectedFilesChanged"
+             SelectButtonText="画像を選択"
+             FilesUploading="OnFilesUploading">
+</DxFileInput>
+
+@if (!string.IsNullOrEmpty(UploadedFileName))
+{
+    <div class="mt-2 alert alert-success">
+        アップロード成功: <strong>@UploadedFileName</strong>
+    </div>
+}
+
+@code {
+    [Parameter]
+    public EventCallback<string> OnUploadCompleted { get; set; } // ファイル名を通知
+
+    private string? UploadedFileName;
+
+    int SelectedFilesCount { get; set; }
+
+    protected void SelectedFilesChanged(IEnumerable<UploadFileInfo> files)
+    {
+        SelectedFilesCount = files.Count();
+        StateHasChanged();
+    }
+
+    protected async Task OnFilesUploading(FilesUploadingEventArgs args)
+    {
+        var file = args.Files.FirstOrDefault();
+        if (file == null) return;
+
+        var fileName = file.Name;
+        Stream stream = file.OpenReadStream();
+
+        try
+        {
+            var uploadedPath = await BlobService.BlobImageUploadAsync(stream, fileName);
+            if (!string.IsNullOrEmpty(uploadedPath))
+            {
+                UploadedFileName = uploadedPath;
+                await OnUploadCompleted.InvokeAsync(uploadedPath);
+                await JSRuntime.InvokeVoidAsync("console.log", $"Upload successful: {uploadedPath}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("console.error", $"Upload failed: {ex.Message}");
+        }
+        finally
+        {
+            stream.Dispose();
+        }
+
+    }
+}

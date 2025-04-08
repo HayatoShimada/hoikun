@@ -50,11 +50,31 @@
             await SaveRoutesToDatabaseAsync(routeModels);
         }
 
+        public async Task<string?> BlobImageUploadAsync(Stream stream, string fileName)
+        {
+            BlobContainerClient containerClient = GetContainerClient();
+
+            string newFileName = $"{DateTime.UtcNow:yyyyMMddHHmmssfff}_{Path.GetFileName(fileName)}";
+            var blobClient = containerClient.GetBlobClient(newFileName);
+
+
+            try
+            {
+                await UploadWithRetryAsync(blobClient, stream);
+                return newFileName;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Upload failed: {ex.Message}");
+                return null;
+            }
+        }
+
         private BlobContainerClient GetContainerClient()
         {
             string? accountName = _configuration["AzureStorageConfig:AccountName"];
             string? accountKey = _configuration["AzureStorageConfig:AccountKey"];
-            string? containerName = _configuration["AzureStorageConfig:ContainerName"];
+            string? containerName = "blog-images";
 
             string connectionString = $"DefaultEndpointsProtocol=https;AccountName=hoikunstorage;AccountKey=ySwkO2vNpImvCSej/4Bo0vt7MOElbDu/pQXbXMzeL/fs9g8iPs5PLPd3ZtiiHmmB2EjjDSdazLtE+AStohT0IA==;EndpointSuffix=core.windows.net";
             BlobServiceClient blobServiceClient = new(connectionString);

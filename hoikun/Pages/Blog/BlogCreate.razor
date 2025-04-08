@@ -7,69 +7,57 @@
 
 <PageTitle>園だより作成</PageTitle>
 
-<EditForm Model="newBlog" OnValidSubmit="HandleValidSubmit">
-    <ChildContent Context="editContext">
+@if (newBlog == null)
+{
+    <p>読み込み中...</p>
+}
+else
+{
+    <EditForm Model="newBlog" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator />
-        <DxFormLayout>
-            <DxFormLayoutGroup Caption="基本情報">
-                <DxFormLayoutItem Caption="タイトル">
-                    <ChildContent Context="itemContext">
-                        <DxTextBox @bind-Text="newBlog.Title" />
-                    </ChildContent>
-                </DxFormLayoutItem>
-            </DxFormLayoutGroup>
 
-            <DxFormLayoutGroup Caption="コンテンツ">
-                @foreach (var content in blogContents.OrderBy(c => c.Order))
+        <div class="mb-3">
+            <label class="form-label">タイトル</label>
+            <InputText class="form-control" @bind-Value="newBlog.Title" />
+        </div>
+
+        <h5>コンテンツ</h5>
+        @foreach (var content in blogContents.OrderBy(c => c.Order))
+        {
+            <div class="mb-3 border rounded p-3">
+                <label class="form-label">種類</label>
+                <select class="form-select" @bind="content.ContentType">
+                    <option value="html">HTML</option>
+                    <option value="image">画像URL</option>
+                </select>
+
+                <label class="form-label mt-2">内容</label>
+                @if (content.ContentType == "html")
                 {
-                    <DxFormLayoutItem Caption="@($"内容（{content.ContentType}） 順番: {content.Order}")">
-                        <ChildContent Context="contentContext">
-                            @if (content.ContentType == "html")
-                            {
-                                <DxHtmlEditor Height="300px" @bind-Markup="content.ContentData" />
-                            }
-                            else if (content.ContentType == "image")
-                            {
-                                <DxTextBox @bind-Text="content.ContentData" Placeholder="画像のURLを入力" />
-                            }
-                        </ChildContent>
-                    </DxFormLayoutItem>
+                    <textarea class="form-control" rows="4" @bind="content.ContentData"></textarea>
+                }
+                else if (content.ContentType == "image")
+                {
+                    <InputText class="form-control" @bind-Value="content.ContentData" Placeholder="画像のURLを入力" />
+                    @if (!string.IsNullOrEmpty(content.ContentData))
+                    {
+                        <img src="@content.ContentData" class="img-thumbnail mt-2" style="max-height: 200px;" />
+                    }
+                    <SingleFileUpload OnUploadCompleted="(fileName) => OnImageUploadCompleted(fileName, content)" />
                 }
 
-                <DxFormLayoutItem ColSpanMd="6">
-                    <ChildContent Context="itemContext">
-                        <DxButton Click="AddHtmlContent" RenderStyle="ButtonRenderStyle.Secondary">
-                            <ChildContent Context="btnContext">
-                                HTML追加
-                            </ChildContent>
-                        </DxButton>
-                    </ChildContent>
-                </DxFormLayoutItem>
+                <label class="form-label mt-2">表示順</label>
+                <InputNumber class="form-control" @bind-Value="content.Order" />
 
-                <DxFormLayoutItem ColSpanMd="6">
-                    <ChildContent Context="itemContext">
-                        <DxButton Click="AddImageContent" RenderStyle="ButtonRenderStyle.Secondary">
-                            <ChildContent Context="btnContext">
-                                画像追加
-                            </ChildContent>
-                        </DxButton>
-                    </ChildContent>
-                </DxFormLayoutItem>
+                <button type="button" class="btn btn-danger mt-2" @onclick="() => RemoveContent(content)">削除</button>
+            </div>
+        }
 
-                <DxFormLayoutItem ColSpanMd="12">
-                    <ChildContent Context="itemContext">
-                        <DxButton RenderStyle="ButtonRenderStyle.Primary" SubmitFormOnClick="true">
-                            <ChildContent Context="btnContext">
-                                保存して一覧へ
-                            </ChildContent>
-                        </DxButton>
-                    </ChildContent>
-                </DxFormLayoutItem>
-            </DxFormLayoutGroup>
-        </DxFormLayout>
-    </ChildContent>
-</EditForm>
-
+        <button type="button" class="btn btn-secondary me-2" @onclick="AddHtmlContent">HTML追加</button>
+        <button type="button" class="btn btn-secondary me-2" @onclick="AddImageContent">画像追加</button>
+        <button type="submit" class="btn btn-primary">保存して一覧へ</button>
+    </EditForm>
+}
 
 @code {
     private Blog newBlog = new Blog { CreatedAt = DateTime.Now };
@@ -92,20 +80,45 @@
     private void AddHtmlContent()
     {
         blogContents.Add(new BlogContent
-        {
-            ContentType = "html",
-            ContentData = "",
-            Order = blogContents.Count + 1
-        });
+            {
+                ContentType = "html",
+                ContentData = string.Empty,
+                Order = blogContents.Count + 1
+            });
     }
 
     private void AddImageContent()
     {
         blogContents.Add(new BlogContent
+            {
+                ContentType = "image",
+                ContentData = string.Empty,
+                Order = blogContents.Count + 1
+            });
+    }
+
+    private void RemoveContent(BlogContent content)
+    {
+        blogContents.Remove(content);
+    }
+
+    private void OnImageUploadCompleted(string fileName, BlogContent targetContent)
+    {
+        var baseUrl = "https://hoikunstorage.blob.core.windows.net/blog-images/"; // TODO: 必要に応じて修正
+        targetContent.ContentData = baseUrl + fileName;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
         {
-            ContentType = "image",
-            ContentData = "",
-            Order = blogContents.Count + 1
-        });
+            await JSRuntime.InvokeVoidAsync("confirmNavigation.enable");
+        }
+    }
+
+    public void Dispose()
+    {
+        // ページ遷移時に警告を解除
+        JSRuntime.InvokeVoidAsync("confirmNavigation.disable");
     }
 }

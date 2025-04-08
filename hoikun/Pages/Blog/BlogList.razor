@@ -2,6 +2,8 @@
 @inject IDbContextService BlogService
 @inject NavigationManager Navigation
 @inject IJSRuntime JsRuntime
+@inject MessageService MessageService
+@inject UserStateService UserStateService
 
 <h3>園だより 一覧</h3>
 
@@ -25,7 +27,9 @@
             <tr>
                 <td>
                     <button class="btn btn-sm btn-secondary me-1" @onclick="() => OnEditClick(blog.BlogId)">編集</button>
-                    <button class="btn btn-sm btn-danger" @onclick="() => OnDeleteClick(blog)">削除</button>
+                    <button class="btn btn-sm btn-danger me-1" @onclick="() => OnDeleteClick(blog)">削除</button>
+                    <a class="btn btn-sm btn-info me-1" href="/blog-view/@blog.BlogId" target="_blank">閲覧</a>
+                    <button class="btn btn-sm btn-success" @onclick="() => SendBlogAsync(blog)">配信</button>
                 </td>
                 <td>@blog.Title</td>
                 <td>@(blog.PublishedAt?.ToString("yyyy/MM/dd") ?? "-")</td>
@@ -56,5 +60,30 @@
             blogs = await BlogService.GetAllBlogsAsync();
             StateHasChanged();
         }
+    }
+
+    private async Task SendBlogAsync(Blog blog)
+    {
+        if (UserStateService.ModelId == null) return;
+
+        string subject = $"【園だより】{blog.Title}";
+        string link = $"{Navigation.BaseUri}blog-view/{blog.BlogId}";
+        string body = $"以下のリンクから園だよりをご覧ください：\n{link}";
+
+        List<User> recipients = await MessageService.GetAllUsersAsync();
+        List<string> lineIds = recipients.Where(u => !string.IsNullOrEmpty(u.LineId)).Select(u => u.LineId!).ToList();
+        List<string> emails = recipients.Where(u => !string.IsNullOrEmpty(u.Email)).Select(u => u.Email!).ToList();
+
+        if (lineIds.Any())
+        {
+            await MessageService.SendLineMessage(lineIds, subject, body);
+        }
+
+        if (emails.Any())
+        {
+            await MessageService.SendEmails(recipients, subject, body);
+        }
+
+        await JsRuntime.InvokeVoidAsync("alert", $"{blog.Title} を配信しました。");
     }
 }

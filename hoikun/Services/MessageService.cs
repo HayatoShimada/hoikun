@@ -209,13 +209,28 @@ public class MessageService
         return message.Id;
     }
 
-    private async Task SendEmailsToRecipients(HashSet<int> recipientIds, string subject, string body)
+    public async Task SendEmailsToRecipients(HashSet<int> recipientIds, string subject, string body)
     {
         // 受信者の `Email` を取得
         List<string> recipientEmails = await _context.Users
             .Where(u => recipientIds.Contains(u.UserId) && !string.IsNullOrEmpty(u.Email))
             .Select(u => u.Email!)
             .ToListAsync();
+
+        if (recipientEmails.Any())
+        {
+            await _emailService.SendEmailsAsync(recipientEmails, subject, body);
+        }
+    }
+
+    public async Task SendEmails(List<User> users, string subject, string body)
+    {
+        // 受信者の `Email` を取得
+        List<string> recipientEmails = users
+                    .Where(u => !string.IsNullOrEmpty(u.Email))
+                    .Select(u => u.Email!)
+                    .ToList();
+
 
         if (recipientEmails.Any())
         {

@@ -1,0 +1,46 @@
+﻿@page "/blog-view/{BlogId:int}"
+@inject IDbContextService BlogService
+
+<h3>@blog?.Title</h3>
+
+<p class="text-muted">公開日: @(blog?.PublishedAt?.ToString("yyyy/MM/dd") ?? "-")</p>
+
+@if (blogContents.Count == 0)
+{
+    <p>コンテンツがありません。</p>
+}
+else
+{
+    @foreach (var content in blogContents.OrderBy(c => c.Order))
+    {
+        if (content.ContentType == "html")
+        {
+            <div class="mb-3">
+                @((MarkupString)content.ContentData)
+            </div>
+        }
+        else if (content.ContentType == "image")
+        {
+            <div class="mb-3">
+                <img src="@content.ContentData" class="img-fluid" />
+            </div>
+        }
+    }
+}
+
+@code {
+    [Parameter]
+    public int BlogId { get; set; }
+
+    private Blog? blog;
+    private List<BlogContent> blogContents = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        blog = await BlogService.GetBlogByIdAsync(BlogId);
+        if (blog != null)
+        {
+            blogContents = blog.BlogContents.OrderBy(c => c.Order).ToList();
+        }
+    }
+}
